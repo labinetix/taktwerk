@@ -259,6 +259,47 @@ fn import_header_proposes_an_unconfirmed_descriptor() {
     assert!(!out.status.success());
 }
 
+#[test]
+fn fmu_wrap_dry_runs_and_writes_an_fmu() {
+    let dir = scratch("fmu-wrap");
+    let package = raw_pi();
+    let out = run(&["fmu-wrap", package.to_str().unwrap()], &dir);
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert!(stdout.contains("structural parameters"), "{stdout}");
+    assert!(stdout.contains("dry run: pass --write"), "{stdout}");
+    assert!(!dir.join("pi.fmu").exists());
+    let out = run(
+        &[
+            "fmu-wrap",
+            package.to_str().unwrap(),
+            "--write",
+            "-o",
+            "pi.fmu",
+        ],
+        &dir,
+    );
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert!(dir.join("pi.fmu").is_file());
+    let out = run(&["inspect", "pi.fmu", "--kind", "fmi"], &dir);
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert!(stdout.contains("kp "), "{stdout}");
+    let _ = std::fs::remove_dir_all(dir);
+}
+
 /// The engine process; killed if the test fails before it is stopped.
 struct Engine(Option<Child>);
 

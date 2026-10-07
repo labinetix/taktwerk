@@ -7,7 +7,7 @@ use anyhow::{Context as _, bail};
 use clap::{Parser, Subcommand};
 
 use crate::kinds::ModelKind;
-use crate::{import, inspect, run, scaffold, tui};
+use crate::{fmu_wrap, import, inspect, run, scaffold, tui};
 
 /// Fixed-step model execution engine for Linux with its own OPC UA server.
 #[derive(Debug, Parser)]
@@ -64,6 +64,9 @@ pub enum Command {
     },
     /// Propose a raw model descriptor from a C header; prints it unless asked to write.
     ImportHeader(import::Args),
+    /// Wrap a confirmed raw model package as an FMI 3 co-simulation FMU; a dry run unless
+    /// asked to write.
+    FmuWrap(fmu_wrap::Args),
     /// Monitor a running engine over OPC UA and edit its inputs and tunables.
     Tui {
         /// The engine's server, e.g. `opc.tcp://127.0.0.1:4840`.
@@ -100,6 +103,7 @@ pub fn dispatch(command: Command) -> anyhow::Result<ExitCode> {
             port,
         } => new(&model, kind, output, write, force, tick_ms, port),
         Command::ImportHeader(args) => import::run(&args),
+        Command::FmuWrap(args) => fmu_wrap::run(&args),
         Command::Tui {
             endpoint,
             namespace,

@@ -6,6 +6,7 @@
 //! taktwerk check plant.toml
 //! taktwerk run plant.toml
 //! taktwerk tui opc.tcp://127.0.0.1:4840
+//! taktwerk fmu-wrap models/plant-pkg --write
 //! ```
 //!
 //! `run` serves the process image on the project's OPC UA server, stops on SIGINT or SIGTERM and
@@ -13,6 +14,7 @@
 //! (default `info` for `run`, `warn` otherwise).
 
 mod cli;
+mod fmu_wrap;
 mod import;
 mod inspect;
 mod kinds;
