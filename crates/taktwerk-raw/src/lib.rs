@@ -70,9 +70,11 @@
 //!
 //! A `reported` length is one the library knows and the engine does not have to tell it: it is
 //! zeroed before init, then compared with the bound length after init and after every step; a
-//! difference fails the call with both values. The check runs after the call returned, so it
-//! catches a library loaded with the wrong sizes but cannot undo a write it already made beyond
-//! a buffer bound too small.
+//! difference fails the call with both values. The check runs after the call returned, so a
+//! library loaded with the wrong sizes may already have written at its own size. Every
+//! dimension a member reports therefore needs a `max`, and the engine allocates each buffer
+//! shaped by it at that `max` while exchanging only the bound length; text and byte buffers
+//! keep their literal capacity.
 //!
 //! Text travels as bytes: a `char *` member maps to a `u8` variable with a literal shape, its
 //! capacity with the terminating NUL included (`shape = [32]`). The caller supplies text through
@@ -202,9 +204,11 @@
 //!
 //! [[dimensions]]
 //! name = "nu"
+//! max = 16
 //!
 //! [[dimensions]]
 //! name = "ny"
+//! max = 16
 //!
 //! [[variables]]
 //! name = "k"

@@ -460,6 +460,10 @@ pub struct Plan {
     /// Engine-owned storage cells (one 8-byte scalar each) that pointer members and arguments
     /// carrying a `const`, `phase` or `dim` point at.
     pub cells: usize,
+    /// Per declared dimension: whether a member reports it. Buffers shaped by such a dimension
+    /// are allocated at its `max`, since the library may write at its own size before the
+    /// reported length is checked.
+    pub max_sized: Vec<bool>,
 }
 
 /// A struct with its layout and the meaning of every member.
@@ -690,6 +694,22 @@ impl Descriptor {
         for (name, spec) in &self.abi.structs {
             structs.push(self.resolve_struct(name, spec, &vars, &dims, &mut cells)?);
         }
+        let mut max_sized = vec![false; iface.dimensions.len()];
+        for s in &structs {
+            for (member, role) in s.layout.members().iter().zip(&s.members) {
+                if let MemberRole::Reported { dim, .. } = *role {
+                    let d = &iface.dimensions[dim];
+                    if d.max.is_none() {
+                        return fail(format!(
+                            "dimension {}: reported by {}.{} and needs `max`, the size its \
+                             buffers are allocated at",
+                            d.name, s.name, member.name
+                        ));
+                    }
+                    max_sized[dim] = true;
+                }
+            }
+        }
 
         let init = self.resolve_call(
             "init",
@@ -756,6 +776,7 @@ impl Descriptor {
             outputs: by_causality(Causality::Output),
             tunables: by_causality(Causality::Tunable),
             cells,
+            max_sized,
         })
     }
 
@@ -1132,7 +1153,7 @@ args = [{ value = "u" }, { array = "y" }]
         let text = MINIMAL
             .replace(
                 "name = \"gain\"\n",
-                "name = \"gain\"\n[[dimensions]]\nname = \"n\"\n",
+                "name = \"gain\"\n[[dimensions]]\nname = \"n\"\nmax = 16\n",
             )
             .replace(
                 "args = [{ value = \"u\" }, { array = \"y\" }]",
@@ -1174,6 +1195,11 @@ args = [{ value = "u" }, { array = "y" }]
         ));
         assert!(matches!(roles[5], MemberRole::Pointer(Some(1))));
         assert_eq!(plan.cells, 3);
+        assert_eq!(plan.max_sized, vec![true]);
+
+        let no_max = text.replace("name = \"n\"\nmax = 16\n", "name = \"n\"\n");
+        let err = Descriptor::parse(&no_max).unwrap().validate().unwrap_err();
+        assert!(err.0.contains("needs `max`"), "{err}");
 
         let refused = text.replace(
             "{ name = \"id\", type = \"int\", const = 4 }",

@@ -8,7 +8,9 @@
 //!
 //! Lengths a library reports (`reported = true`) are zeroed before init and compared with the
 //! bound lengths after init and after every step; the comparison reads a few integers and
-//! allocates only to word the error.
+//! allocates only to word the error. Since the library may write at its own size before that
+//! check runs, every buffer shaped by a reported dimension is allocated at the dimension's
+//! `max`; the engine still exchanges only the bound length with [`StepIo`].
 
 use core::ffi::c_void;
 use std::fs::File;
@@ -187,27 +189,37 @@ impl ModelAdapter for RawModel {
             }
         }
 
-        // One buffer per variable.
+        // One buffer per variable: the bound length is exchanged, a dimension the library
+        // reports is allocated at its `max` (validation requires one).
+        let plan = &self.plan;
         let mut arrays = Vec::with_capacity(iface.variables.len());
         for v in &iface.variables {
-            let mut len = 1_usize;
+            let (mut len, mut alloc) = (1_usize, 1_usize);
             for dim in &v.shape {
-                let n = match dim {
-                    Dim::Literal(n) => *n,
-                    Dim::Symbol(s) => iface
-                        .dimensions
-                        .iter()
-                        .position(|d| &d.name == s)
-                        .map(|i| dims[i])
-                        .ok_or_else(|| {
-                            fail(format!("variable {}: unknown dimension {s}", v.name))
-                        })?,
+                let (n, cap) = match dim {
+                    Dim::Literal(n) => (*n, *n),
+                    Dim::Symbol(s) => {
+                        let i = iface
+                            .dimensions
+                            .iter()
+                            .position(|d| &d.name == s)
+                            .ok_or_else(|| {
+                                fail(format!("variable {}: unknown dimension {s}", v.name))
+                            })?;
+                        let cap = match iface.dimensions[i].max {
+                            Some(max) if plan.max_sized.get(i).copied().unwrap_or(false) => {
+                                max.max(dims[i])
+                            }
+                            _ => dims[i],
+                        };
+                        (dims[i], cap)
+                    }
                 };
-                len = len
-                    .checked_mul(n)
-                    .ok_or_else(|| fail(format!("variable {}: shape overflow", v.name)))?;
+                let overflow = || fail(format!("variable {}: shape overflow", v.name));
+                len = len.checked_mul(n).ok_or_else(overflow)?;
+                alloc = alloc.checked_mul(cap).ok_or_else(overflow)?;
             }
-            arrays.push(CArray::zeroed(v.ty, len));
+            arrays.push(CArray::zeroed(v.ty, len, alloc));
         }
 
         // Start values for parameters and tunables.
@@ -233,7 +245,6 @@ impl ModelAdapter for RawModel {
         }
 
         // Dimension lengths must fit the C integer types they are passed as.
-        let plan = &self.plan;
         let check_dim = |idx: usize, ty: ScalarType| -> Result<(), ModelError> {
             if int_fits(ty, dims[idx]) {
                 Ok(())
@@ -699,10 +710,17 @@ impl ModelInstance for RawInstance {
 // Engine-owned memory.
 // ==========================================================================
 
-/// A C-side array of one variable. `bool` is kept as bytes, since the library may write any
-/// byte value and a Rust `bool` may hold only `0` or `1`.
+/// A C-side array of one variable: `len` elements are exchanged, the allocation may be larger
+/// (a reported dimension at its `max`). `bool` is kept as bytes, since the library may write
+/// any byte value and a Rust `bool` may hold only `0` or `1`.
 #[derive(Debug)]
-enum CArray {
+struct CArray {
+    data: Storage,
+    len: usize,
+}
+
+#[derive(Debug)]
+enum Storage {
     Typed(Buffer),
     Bool(Vec<u8>),
 }
@@ -714,44 +732,49 @@ enum Reg {
 }
 
 impl CArray {
-    fn zeroed(ty: ScalarType, len: usize) -> Self {
-        match ty {
-            ScalarType::Bool => Self::Bool(vec![0; len]),
-            other => Self::Typed(Buffer::zeroed(other, len)),
-        }
+    /// `len` exchanged elements inside an allocation of `alloc >= len`.
+    fn zeroed(ty: ScalarType, len: usize, alloc: usize) -> Self {
+        let alloc = alloc.max(len);
+        let data = match ty {
+            ScalarType::Bool => Storage::Bool(vec![0; alloc]),
+            other => Storage::Typed(Buffer::zeroed(other, alloc)),
+        };
+        Self { data, len }
     }
 
-    fn len(&self) -> usize {
-        match self {
-            Self::Typed(b) => b.len(),
-            Self::Bool(v) => v.len(),
-        }
+    const fn len(&self) -> usize {
+        self.len
     }
 
     /// The buffer's address, re-derived from a mutable borrow so the library may write through
     /// it until the next borrow on the Rust side.
     fn addr(&mut self) -> usize {
-        let ptr: *mut c_void = match self {
-            Self::Typed(Buffer::F64(v)) => v.as_mut_ptr().cast(),
-            Self::Typed(Buffer::F32(v)) => v.as_mut_ptr().cast(),
-            Self::Typed(Buffer::I64(v)) => v.as_mut_ptr().cast(),
-            Self::Typed(Buffer::I32(v)) => v.as_mut_ptr().cast(),
-            Self::Typed(Buffer::I16(v)) => v.as_mut_ptr().cast(),
-            Self::Typed(Buffer::I8(v)) => v.as_mut_ptr().cast(),
-            Self::Typed(Buffer::U64(v)) => v.as_mut_ptr().cast(),
-            Self::Typed(Buffer::U32(v)) => v.as_mut_ptr().cast(),
-            Self::Typed(Buffer::U16(v)) => v.as_mut_ptr().cast(),
-            Self::Typed(Buffer::U8(v)) => v.as_mut_ptr().cast(),
-            Self::Typed(Buffer::Bool(v)) => v.as_mut_ptr().cast(),
-            Self::Bool(v) => v.as_mut_ptr().cast(),
+        let ptr: *mut c_void = match &mut self.data {
+            Storage::Typed(Buffer::F64(v)) => v.as_mut_ptr().cast(),
+            Storage::Typed(Buffer::F32(v)) => v.as_mut_ptr().cast(),
+            Storage::Typed(Buffer::I64(v)) => v.as_mut_ptr().cast(),
+            Storage::Typed(Buffer::I32(v)) => v.as_mut_ptr().cast(),
+            Storage::Typed(Buffer::I16(v)) => v.as_mut_ptr().cast(),
+            Storage::Typed(Buffer::I8(v)) => v.as_mut_ptr().cast(),
+            Storage::Typed(Buffer::U64(v)) => v.as_mut_ptr().cast(),
+            Storage::Typed(Buffer::U32(v)) => v.as_mut_ptr().cast(),
+            Storage::Typed(Buffer::U16(v)) => v.as_mut_ptr().cast(),
+            Storage::Typed(Buffer::U8(v)) => v.as_mut_ptr().cast(),
+            Storage::Typed(Buffer::Bool(v)) => v.as_mut_ptr().cast(),
+            Storage::Bool(v) => v.as_mut_ptr().cast(),
         };
         ptr.expose_provenance()
     }
 
+    /// The first `len` elements from `src`, which must hold exactly `len`.
     fn load(&mut self, src: &Buffer) -> Result<(), Mismatch> {
-        match (self, src) {
-            (Self::Typed(dst), src) => dst.copy_from(src),
-            (Self::Bool(dst), Buffer::Bool(src)) if dst.len() == src.len() => {
+        if src.len() != self.len {
+            return Err(Mismatch);
+        }
+        match (&mut self.data, src) {
+            (Storage::Typed(dst), src) => copy_first(dst, src, self.len),
+            (Storage::Bool(dst), Buffer::Bool(src)) => {
+                let dst = dst.get_mut(..self.len).ok_or(Mismatch)?;
                 for (d, s) in dst.iter_mut().zip(src) {
                     *d = u8::from(*s);
                 }
@@ -761,10 +784,15 @@ impl CArray {
         }
     }
 
+    /// The first `len` elements into `dst`, which must hold exactly `len`.
     fn store(&self, dst: &mut Buffer) -> Result<(), Mismatch> {
-        match (self, dst) {
-            (Self::Typed(src), dst) => dst.copy_from(src),
-            (Self::Bool(src), Buffer::Bool(dst)) if dst.len() == src.len() => {
+        if dst.len() != self.len {
+            return Err(Mismatch);
+        }
+        match (&self.data, dst) {
+            (Storage::Typed(src), dst) => copy_first(dst, src, self.len),
+            (Storage::Bool(src), Buffer::Bool(dst)) => {
+                let src = src.get(..self.len).ok_or(Mismatch)?;
                 for (d, s) in dst.iter_mut().zip(src) {
                     *d = *s != 0;
                 }
@@ -777,29 +805,29 @@ impl CArray {
     /// Element 0 as a register image (narrow integers extended to 32 bits, `float` in the low
     /// bits of a `double` register).
     fn first_reg(&self) -> Reg {
-        match self {
-            Self::Typed(Buffer::F64(v)) => Reg::Float(v.first().copied().unwrap_or(0.0)),
-            Self::Typed(Buffer::F32(v)) => Reg::Float(f64::from_bits(u64::from(
+        match &self.data {
+            Storage::Typed(Buffer::F64(v)) => Reg::Float(v.first().copied().unwrap_or(0.0)),
+            Storage::Typed(Buffer::F32(v)) => Reg::Float(f64::from_bits(u64::from(
                 v.first().copied().unwrap_or(0.0).to_bits(),
             ))),
-            Self::Typed(Buffer::I64(v)) => Reg::Int(v.first().copied().unwrap_or(0) as u64),
-            Self::Typed(Buffer::I32(v)) => {
+            Storage::Typed(Buffer::I64(v)) => Reg::Int(v.first().copied().unwrap_or(0) as u64),
+            Storage::Typed(Buffer::I32(v)) => {
                 Reg::Int(u64::from(v.first().copied().unwrap_or(0) as u32))
             }
-            Self::Typed(Buffer::I16(v)) => {
+            Storage::Typed(Buffer::I16(v)) => {
                 Reg::Int(u64::from(i32::from(v.first().copied().unwrap_or(0)) as u32))
             }
-            Self::Typed(Buffer::I8(v)) => {
+            Storage::Typed(Buffer::I8(v)) => {
                 Reg::Int(u64::from(i32::from(v.first().copied().unwrap_or(0)) as u32))
             }
-            Self::Typed(Buffer::U64(v)) => Reg::Int(v.first().copied().unwrap_or(0)),
-            Self::Typed(Buffer::U32(v)) => Reg::Int(u64::from(v.first().copied().unwrap_or(0))),
-            Self::Typed(Buffer::U16(v)) => Reg::Int(u64::from(v.first().copied().unwrap_or(0))),
-            Self::Typed(Buffer::U8(v)) => Reg::Int(u64::from(v.first().copied().unwrap_or(0))),
-            Self::Typed(Buffer::Bool(v)) => {
+            Storage::Typed(Buffer::U64(v)) => Reg::Int(v.first().copied().unwrap_or(0)),
+            Storage::Typed(Buffer::U32(v)) => Reg::Int(u64::from(v.first().copied().unwrap_or(0))),
+            Storage::Typed(Buffer::U16(v)) => Reg::Int(u64::from(v.first().copied().unwrap_or(0))),
+            Storage::Typed(Buffer::U8(v)) => Reg::Int(u64::from(v.first().copied().unwrap_or(0))),
+            Storage::Typed(Buffer::Bool(v)) => {
                 Reg::Int(u64::from(v.first().copied().unwrap_or(false)))
             }
-            Self::Bool(v) => Reg::Int(u64::from(v.first().copied().unwrap_or(0) != 0)),
+            Storage::Bool(v) => Reg::Int(u64::from(v.first().copied().unwrap_or(0) != 0)),
         }
     }
 
@@ -815,19 +843,19 @@ impl CArray {
                 Ok(())
             }};
         }
-        match self {
-            Self::Typed(Buffer::F64(v)) => put!(v),
-            Self::Typed(Buffer::F32(v)) => put!(v),
-            Self::Typed(Buffer::I64(v)) => put!(v),
-            Self::Typed(Buffer::I32(v)) => put!(v),
-            Self::Typed(Buffer::I16(v)) => put!(v),
-            Self::Typed(Buffer::I8(v)) => put!(v),
-            Self::Typed(Buffer::U64(v)) => put!(v),
-            Self::Typed(Buffer::U32(v)) => put!(v),
-            Self::Typed(Buffer::U16(v)) => put!(v),
-            Self::Typed(Buffer::U8(v)) => put!(v),
-            Self::Typed(Buffer::Bool(v)) => put!(v.iter().map(|b| u8::from(*b))),
-            Self::Bool(v) => put!(v.iter().map(|b| u8::from(*b != 0))),
+        match &self.data {
+            Storage::Typed(Buffer::F64(v)) => put!(v),
+            Storage::Typed(Buffer::F32(v)) => put!(v),
+            Storage::Typed(Buffer::I64(v)) => put!(v),
+            Storage::Typed(Buffer::I32(v)) => put!(v),
+            Storage::Typed(Buffer::I16(v)) => put!(v),
+            Storage::Typed(Buffer::I8(v)) => put!(v),
+            Storage::Typed(Buffer::U64(v)) => put!(v),
+            Storage::Typed(Buffer::U32(v)) => put!(v),
+            Storage::Typed(Buffer::U16(v)) => put!(v),
+            Storage::Typed(Buffer::U8(v)) => put!(v),
+            Storage::Typed(Buffer::Bool(v)) => put!(v.iter().map(|b| u8::from(*b))),
+            Storage::Bool(v) => put!(v.iter().map(|b| u8::from(*b != 0))),
         }
     }
 
@@ -840,26 +868,52 @@ impl CArray {
                 Ok(())
             }};
         }
-        match self {
-            Self::Typed(Buffer::F64(v)) => get!(v, f64),
-            Self::Typed(Buffer::F32(v)) => get!(v, f32),
-            Self::Typed(Buffer::I64(v)) => get!(v, i64),
-            Self::Typed(Buffer::I32(v)) => get!(v, i32),
-            Self::Typed(Buffer::I16(v)) => get!(v, i16),
-            Self::Typed(Buffer::I8(v)) => get!(v, i8),
-            Self::Typed(Buffer::U64(v)) => get!(v, u64),
-            Self::Typed(Buffer::U32(v)) => get!(v, u32),
-            Self::Typed(Buffer::U16(v)) => get!(v, u16),
-            Self::Typed(Buffer::U8(v)) => get!(v, u8),
-            Self::Typed(Buffer::Bool(v)) => {
+        match &mut self.data {
+            Storage::Typed(Buffer::F64(v)) => get!(v, f64),
+            Storage::Typed(Buffer::F32(v)) => get!(v, f32),
+            Storage::Typed(Buffer::I64(v)) => get!(v, i64),
+            Storage::Typed(Buffer::I32(v)) => get!(v, i32),
+            Storage::Typed(Buffer::I16(v)) => get!(v, i16),
+            Storage::Typed(Buffer::I8(v)) => get!(v, i8),
+            Storage::Typed(Buffer::U64(v)) => get!(v, u64),
+            Storage::Typed(Buffer::U32(v)) => get!(v, u32),
+            Storage::Typed(Buffer::U16(v)) => get!(v, u16),
+            Storage::Typed(Buffer::U8(v)) => get!(v, u8),
+            Storage::Typed(Buffer::Bool(v)) => {
                 *v.first_mut().ok_or(Mismatch)? = *slot.first().ok_or(Mismatch)? != 0;
                 Ok(())
             }
-            Self::Bool(v) => {
+            Storage::Bool(v) => {
                 *v.first_mut().ok_or(Mismatch)? = *slot.first().ok_or(Mismatch)?;
                 Ok(())
             }
         }
+    }
+}
+
+/// The first `len` elements of `src` into `dst`; both must hold at least `len` of one type.
+fn copy_first(dst: &mut Buffer, src: &Buffer, len: usize) -> Result<(), Mismatch> {
+    macro_rules! go {
+        ($d:expr, $s:expr) => {{
+            let d = $d.get_mut(..len).ok_or(Mismatch)?;
+            let s = $s.get(..len).ok_or(Mismatch)?;
+            d.copy_from_slice(s);
+            Ok(())
+        }};
+    }
+    match (dst, src) {
+        (Buffer::F64(d), Buffer::F64(s)) => go!(d, s),
+        (Buffer::F32(d), Buffer::F32(s)) => go!(d, s),
+        (Buffer::I64(d), Buffer::I64(s)) => go!(d, s),
+        (Buffer::I32(d), Buffer::I32(s)) => go!(d, s),
+        (Buffer::I16(d), Buffer::I16(s)) => go!(d, s),
+        (Buffer::I8(d), Buffer::I8(s)) => go!(d, s),
+        (Buffer::U64(d), Buffer::U64(s)) => go!(d, s),
+        (Buffer::U32(d), Buffer::U32(s)) => go!(d, s),
+        (Buffer::U16(d), Buffer::U16(s)) => go!(d, s),
+        (Buffer::U8(d), Buffer::U8(s)) => go!(d, s),
+        (Buffer::Bool(d), Buffer::Bool(s)) => go!(d, s),
+        _ => Err(Mismatch),
     }
 }
 

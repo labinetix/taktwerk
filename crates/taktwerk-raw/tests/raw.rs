@@ -166,14 +166,17 @@ name = "blob"
 [[dimensions]]
 name = "nu"
 min = 1
+max = 8
 
 [[dimensions]]
 name = "ny"
 min = 1
+max = 8
 
 [[dimensions]]
 name = "np"
 min = 1
+max = 8
 
 [[variables]]
 name = "k"
@@ -869,6 +872,40 @@ fn a_reported_size_other_than_the_bound_one_fails_init() {
     }
 }
 
+/// The library reports nu = 2 while 1 is bound: it writes 2 x 3 gains before the check runs.
+/// The buffers are allocated at the dimension's max, so that write stays inside them; the
+/// mismatch then fails init. (Checked by construction and under debug assertions; no sanitizer
+/// run.)
+#[test]
+fn a_reported_size_larger_than_bound_fails_init_inside_the_max_sized_buffers() {
+    let model = RawModel::load(&package("blob_model")).unwrap();
+    let (spec, mut io) = blob_spec("narrow", 1, "x");
+    let mut inst = model.instantiate(&spec).unwrap();
+    let err = inst.init(0.0, &mut io).unwrap_err();
+    match err {
+        ModelError::Instantiate(ref m) => {
+            assert!(m.contains("dim_nu = 2") && m.contains("bound to 1"), "{m}");
+        }
+        other => panic!("{other}"),
+    }
+    // The heap is intact: a further instance at the reported size runs.
+    let (spec, mut io) = blob_spec("right", 2, "x");
+    let mut inst = model.instantiate(&spec).unwrap();
+    inst.init(0.0, &mut io).unwrap();
+    assert_close(&as_f64s(&io.outputs[3]), &[1.0, 1.1, 2.0, 2.1, 3.0, 3.1]);
+
+    // A reported dimension without a max is refused at load.
+    let dir = variant(
+        "blob_model",
+        &BLOB_DESCRIPTOR.replace("name = \"nu\"\nmin = 1\nmax = 8", "name = \"nu\"\nmin = 1"),
+    );
+    let err = RawModel::load(&dir).unwrap_err();
+    assert!(
+        matches!(err, ModelError::Load(ref m) if m.contains("needs `max`") && m.contains("dim_nu")),
+        "{err}"
+    );
+}
+
 #[test]
 fn an_unknown_id_fails_the_call_with_its_code() {
     let model = RawModel::load(&variant(
@@ -959,6 +996,19 @@ fn the_header_import_proposes_the_single_entry_descriptor() {
     assert_eq!(&back, d);
     assert!(back.validate().is_err());
     back.abi.confirmed = true;
+    let err = back.validate().unwrap_err();
+    assert!(
+        err.0.contains("needs `max`"),
+        "reported dimensions need a max: {err}"
+    );
+    assert!(
+        proposal.notes.iter().any(|n| n.contains("max")),
+        "{:?}",
+        proposal.notes
+    );
+    for d in &mut back.interface.dimensions {
+        d.max = Some(8);
+    }
     back.validate().unwrap();
 
     // Options naming what the header lacks are refused.

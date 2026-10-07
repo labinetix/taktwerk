@@ -1302,7 +1302,8 @@ impl<'h> Builder<'h> {
                 if let Some(dim) = reported_dim(&mname) {
                     self.notes.push(format!(
                         "struct {name}: {mname} looks like a length the library reports: \
-                         dim = {dim}, reported = true (guessed)"
+                         dim = {dim}, reported = true (guessed); set the dimension's max, its \
+                         buffers are allocated at that size"
                     ));
                     self.dims.entry(dim.clone()).or_insert(*t);
                     members.push(Member {

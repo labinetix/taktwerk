@@ -45,7 +45,9 @@ signals over OPC UA.
   takes which dimension; the model developer confirms it once, in the descriptor.
 - **Sizes a library reports are checked, never adopted.** A raw member marked `reported` is
   zeroed before init and must equal the bound length after init and every step, or the call
-  fails.
+  fails. A reported dimension needs a `max`; buffers shaped by it are allocated at that `max`,
+  so a library writing at its own size before the check cannot overrun them, while the image
+  only ever sees the bound length.
 - **A raw descriptor declares `instances = "single" | "multiple"`.** A second instance of a
   single-instance library loads a private copy of it, since one path shares its globals.
 - **Matrices declare their layout,** row- or column-major.
