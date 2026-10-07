@@ -32,7 +32,8 @@ out around each step.
 
 ## Calls
 
-A library is called through at most three functions:
+A library is called through at most three functions, or one function serving as both init and
+step (see [single entry point](#single-entry-point)):
 
 - `[abi.init]` once per instance, after the engine has allocated and filled the buffers
   (parameters, first inputs, dimension lengths);
@@ -54,25 +55,53 @@ Arguments are listed in C order; each is exactly one of:
 | `{ builtin = "time" }`        | `double`    | the time the call advances from                 |
 | `{ handle = "out" }`          | `void **`   | init only: the library stores its handle        |
 | `{ handle = "in" }`           | `void *`    | the stored handle                               |
+| `{ const = 7, type = "int" }` | `T`         | the same number on every call                   |
+| `{ phase = { init = 1, step = 0 }, type = "int" }` | `T` | one number for init, another for step and terminate |
 
-`type` on a `dim` argument is any admitted integer type (default `int`). Handles need
+`type` (default `int`) applies to `dim`, `const` and `phase`. Written as a pointer (`int *`),
+the argument is the address of engine-owned storage holding the value. A `const` or `phase`
+number is an integer literal (any type that holds it) or a float literal (`double`, `float`
+only). Handles need
 `instances = "multiple"`; init has at most one `handle = "out"`. A `value` argument cannot be an
 output or a shaped variable. Up to eight pointer/integer and eight floating-point arguments are
 passed per call; larger interfaces go through a struct.
 
 ## Structs
 
-A struct in `[abi.structs.<s>]` lists its members with their C type in declaration order.
+A struct in `[abi.structs.<s>]` lists its members with their C type in declaration order;
+each member maps to at most one of:
 
-- A pointer member mapped to a `variable` gets the buffer's address.
+| member (`name`, `type` omitted)          | C member      | holds                                     |
+|------------------------------------------|---------------|-------------------------------------------|
+| `{ variable = "v" }`                     | `T *`         | the address of `v`'s buffer               |
+| `{ variable = "v" }`                     | `T`           | scalar `v` (see below)                    |
+| `{ dim = "n" }`                          | `int`/`int *` | the bound length of `n`                   |
+| `{ dim = "n", reported = true }`         | `int`/`int *` | a length the library writes (see below)   |
+| `{ builtin = "step_size" }`              | `double`      | the step size or the time                 |
+| `{ const = 9 }`                          | `T`/`T *`     | the same number on every call             |
+| `{ phase = { init = 1, step = 0 } }`     | `T`/`T *`     | one number for init, another afterwards   |
+
 - A scalar member mapped to a `variable` carries the value: inputs, parameters and tunables are
   written before each call, outputs read after it. A shaped variable needs a pointer member.
-- A scalar integer member mapped to a `dim` carries the bound length.
-- A `double` member mapped to a `builtin` carries the step size or the time.
+- A pointer member may point at a scalar variable of any causality. One the library writes back
+  (a counter in an input struct) is mapped to an output variable, whose buffer the engine never
+  overwrites.
+- A pointer member carrying a `dim`, `const` or `phase` points at engine-owned storage.
 - Unmapped pointer members are `NULL`, unmapped scalars zero.
 
-Each member maps at most one of `variable`, `dim` and `builtin`, and a variable member's C type
-must match the variable's type. Each instance owns one image per struct, the same in every call,
+A variable member's C type must match the variable's type, with one exception: a `uint8_t` or
+`uint8_t *` member may carry a `bool` variable; the engine keeps the bytes and reads any non-zero
+byte as true.
+
+**Reported lengths.** A `dim` member with `reported = true` is a length the library knows and
+writes itself. It is zeroed before init, then compared with the bound length after init and
+after every step; a difference fails the call with both values. The check runs after the call
+returned, so it catches a library loaded with the wrong sizes but cannot undo a write it already
+made beyond a buffer bound too small. The project file stays the size authority.
+
+**Text** travels as bytes: a `char *` member maps to a `u8` variable with a literal shape, its
+capacity with the terminating NUL included (`shape = [32]`). The caller supplies text through a
+parameter or input; the library writes it into an output. Each instance owns one image per struct, the same in every call,
 so a library may keep a struct pointer it got at init.
 
 ## C types
@@ -93,8 +122,8 @@ except the `void **` of `handle = "out"`.
 | `abi.confirmed`           | `true` once the developer checked every pointer→length relation     |
 | `abi.library`             | file name in `lib/<arch>/`; default: the only `.so` there            |
 | `abi.ok_codes`            | success return values of `int` calls; default `[0]`                 |
-| `abi.init`, `abi.step`, `abi.terminate` | `symbol`, `returns` (`int` or `void`), `args`         |
-| `abi.structs.<s>.members` | `name`, `type` (C spelling), one of `variable`, `dim`, `builtin`    |
+| `abi.init`, `abi.step`, `abi.terminate` | `symbol`, `returns` (`int` or `void`), `args`; init and step may share a symbol |
+| `abi.structs.<s>.members` | `name`, `type` (C spelling), at most one of `variable`, `dim` (with optional `reported`), `builtin`, `const`, `phase` |
 
 A `single` library keeps its state in globals, so each further instance loads a private copy of
 the file; a `multiple` library carries its state behind a handle or inside a struct the engine
@@ -201,6 +230,95 @@ A library with a handle instead declares `instances = "multiple"` and, for examp
 repository's
 [`examples/raw-pi`](https://github.com/labinetix/taktwerk/tree/main/examples/raw-pi) is such a
 library, with its confirmed descriptor.
+
+## Single entry point
+
+A common legacy style exports one function for every call, taking an integer id and two opaque
+pointers the library casts to its input and output structs. Which call runs is a flag the caller
+sets, and the library reports its own sizes at init:
+
+```c
+typedef struct { int32_t *first; int32_t variant; double *k; double *u; int32_t *count; } io_in;
+typedef struct { double *y; char *label; int32_t *n_u; int32_t *n_y; } io_out;
+int model_call(int id, char *in, char *out);  /* 0 on success */
+```
+
+```toml
+name = "single-entry"
+
+[[dimensions]]
+name = "nu"
+
+[[dimensions]]
+name = "ny"
+
+[[variables]]
+name = "k"
+causality = "tunable"
+type = "f64"
+
+[[variables]]
+name = "u"
+causality = "input"
+type = "f64"
+shape = ["nu"]
+
+[[variables]]
+name = "count"
+causality = "output"
+type = "i32"
+
+[[variables]]
+name = "y"
+causality = "output"
+type = "f64"
+shape = ["ny"]
+
+[[variables]]
+name = "label"
+causality = "output"
+type = "u8"
+shape = [32]
+
+[abi]
+confirmed = true
+
+[abi.init]
+symbol = "model_call"
+args = [{ const = 7, type = "int" }, { struct = "io_in" }, { struct = "io_out" }]
+
+[abi.step]
+symbol = "model_call"
+args = [{ const = 7, type = "int" }, { struct = "io_in" }, { struct = "io_out" }]
+
+[abi.structs.io_in]
+members = [
+  { name = "first", type = "int32_t *", phase = { init = 1, step = 0 } },
+  { name = "variant", type = "int32_t", const = 1 },
+  { name = "k", type = "double *", variable = "k" },
+  { name = "u", type = "double *", variable = "u" },
+  { name = "count", type = "int32_t *", variable = "count" },
+]
+
+[abi.structs.io_out]
+members = [
+  { name = "y", type = "double *", variable = "y" },
+  { name = "label", type = "char *", variable = "label" },
+  { name = "n_u", type = "int32_t *", dim = "nu", reported = true },
+  { name = "n_y", type = "int32_t *", dim = "ny", reported = true },
+]
+```
+
+`init` and `step` name the same symbol; the `phase` member `first` tells the two calls apart,
+`const` fills the id and a fixed `variant`, the library writes the step counter back through
+`count` (an output), and `n_u`, `n_y` are reported lengths checked against the instance's bound
+`nu` and `ny`.
+
+The `taktwerk-raw` crate's `import_header_with` imports such a header when given the entry point
+and the struct behind each opaque parameter; it then also guesses a flag-like integer as a `phase`, size-like integer
+pointers in an output struct as `reported` lengths, and a leading integer argument as a `const`
+whose value is left to the developer. `taktwerk import-header` does not take these options yet:
+start from the example above, or from the plain proposal, and fill in the roles by hand.
 
 ## Calling convention
 
