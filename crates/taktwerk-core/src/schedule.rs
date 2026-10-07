@@ -1,9 +1,10 @@
 //! The scheduler: one cycle thread on absolute deadlines, stepping every instance due at a tick.
 //!
 //! Per tick: the external inputs and tunables of every due instance are fetched; if any input is
-//! stale the tick is skipped (status `Faulted`, `stale` counted, heartbeat held), else the due
-//! instances step in declared order, each after fetching its wired inputs, their outputs are
-//! stored and the cycle is published, which advances the heartbeat. A model error terminates
+//! stale the tick is skipped (status `Faulted`, `stale` counted, heartbeat held, outputs
+//! untouched) and published, so connectors show the fault at once; else the due instances step
+//! in declared order, each after fetching its wired inputs, their outputs are stored and the
+//! cycle is published, which advances the heartbeat. A model error terminates
 //! every instance and ends the run with that error (fail-stop). Missed deadlines are counted as
 //! overruns; the tick count stays contiguous, so model time is `start_time + tick · tick_s`.
 //! Nothing on the tick path allocates.
@@ -520,6 +521,8 @@ impl Cycle {
             self.status = Status::Faulted;
             self.tick = tick.saturating_add(1);
             self.store_system(now)?;
+            // Connectors see the held heartbeat and the fault at once; outputs are untouched.
+            self.image.publish(tick);
             return Ok(Tick::Skipped);
         }
         for i in 0..self.slots.len() {
@@ -870,7 +873,8 @@ mod tests {
         assert_eq!(rig.u64("tw.heartbeat"), 1);
         assert_eq!(rig.u64("tw.stale"), 1);
         assert_eq!(rig.u64("tw.cycle"), 2);
-        assert_eq!(*rig.handle.published().borrow(), 0);
+        // The skipped tick is published with the held heartbeat, so connectors see the fault.
+        assert_eq!(*rig.handle.published().borrow(), 1);
         let steps_before = rig.events().iter().filter(|e| e.1 == "step").count();
         // A fresh write recovers without intervention.
         rig.write("ext", 3.0);

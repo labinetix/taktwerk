@@ -241,7 +241,8 @@ impl ImageHandle {
         Ok(slot.stamp)
     }
 
-    /// A receiver that changes to the cycle number each time a cycle's outputs are published.
+    /// A receiver that changes to the cycle number each time a tick is published: after its
+    /// outputs, or on a skipped tick its system signals only, are stored.
     #[must_use]
     pub fn published(&self) -> watch::Receiver<u64> {
         self.published.clone()
@@ -300,7 +301,8 @@ impl CycleImage {
         Ok(())
     }
 
-    /// Announce that cycle `cycle`'s outputs are all stored.
+    /// Announce that tick `cycle` is stored: its outputs, or only its system signals when the tick
+    /// was skipped.
     pub fn publish(&self, cycle: u64) {
         self.published.send_replace(cycle);
     }

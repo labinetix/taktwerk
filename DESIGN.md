@@ -54,8 +54,8 @@ signals over OPC UA.
 - **Models run in-process.** taktwerk publishes a heartbeat and a status; whoever consumes the
   outputs, typically the PLC, owns the safe state once the heartbeat stops. No process isolation.
 - **The heartbeat advances only on a cycle whose outputs were published.** A stale input skips the
-  step and the publish and sets the status to faulted until inputs are fresh again; a model error
-  stops the engine (fail-stop, restart by the service manager).
+  step, holds the heartbeat and the outputs, and publishes the status faulted until inputs are
+  fresh again; a model error stops the engine (fail-stop, restart by the service manager).
 
 ## I/O
 
