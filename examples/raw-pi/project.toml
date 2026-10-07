@@ -1,0 +1,23 @@
+# A PI controller from a plain C library. Build it first:
+#   examples/raw-pi/build.sh
+# Then, from the repository root:
+#   taktwerk run examples/raw-pi/project.toml
+#   taktwerk tui opc.tcp://127.0.0.1:4840      # edit pi.sp and pi.pv, watch pi.u
+
+[engine]
+tick_ms = 10.0
+
+[models.pi]
+kind = "raw"
+path = "."
+
+[[instance]]
+id = "pi"
+model = "pi"
+dims = { n = 1 }
+parameters = { kp = 2.0, ki = 1.0 }
+
+[[connector]]
+id = "ua"
+kind = "opcua-server"
+endpoint = "opc.tcp://127.0.0.1:4840"

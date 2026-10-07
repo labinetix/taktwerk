@@ -1,0 +1,38 @@
+# The PI controller of `raw-pi` closing the loop around the first-order lag of `fmi-state-space`.
+# Build both models first:
+#   examples/raw-pi/build.sh
+#   crates/taktwerk-fmi/tests/reference-fmus.sh target/tmp/reference-fmus
+# Then, from the repository root:
+#   taktwerk run examples/closed-loop/project.toml
+#   taktwerk tui opc.tcp://127.0.0.1:4840      # edit ctrl.sp, watch plant.y follow
+
+[engine]
+tick_ms = 10.0
+
+[models.pi]
+kind = "raw"
+path = "../raw-pi"
+
+[models.lag]
+kind = "fmi"
+path = "../../target/tmp/reference-fmus/fmi3/StateSpace"
+
+# The controller runs first and reads the plant output of the previous tick.
+[[instance]]
+id = "ctrl"
+model = "pi"
+dims = { n = 1 }
+parameters = { kp = 2.0, ki = 1.0 }
+inputs = { pv = "plant.y" }
+
+[[instance]]
+id = "plant"
+model = "lag"
+dims = { m = 1, n = 1, r = 1 }
+parameters = { A = [[-1.0]], B = [[1.0]], C = [[1.0]], D = [[0.0]], x0 = [0.0] }
+inputs = { u = "ctrl.u" }
+
+[[connector]]
+id = "ua"
+kind = "opcua-server"
+endpoint = "opc.tcp://127.0.0.1:4840"

@@ -49,7 +49,9 @@ impl ModelKind {
             Self::Fmi => taktwerk_fmi::FmuAdapter::load(path)
                 .map(|a| Arc::new(a) as Arc<dyn ModelAdapter>)
                 .map_err(|e| e.to_string()),
-            Self::Raw => Err("the raw adapter is not available in this build".to_owned()),
+            Self::Raw => taktwerk_raw::RawModel::load(path)
+                .map(|a| Arc::new(a) as Arc<dyn ModelAdapter>)
+                .map_err(|e| e.to_string()),
         }
     }
 }

@@ -1,0 +1,66 @@
+# Descriptor of pi.h, proposed by `taktwerk import-header pi.h` and confirmed by hand:
+# the gains became tunables, everything else is as proposed.
+
+name = "pi"
+instances = "multiple"
+
+[[dimensions]]
+name = "n"
+min = 1
+default = 1
+
+[[variables]]
+name = "kp"
+causality = "tunable"
+type = "f64"
+description = "proportional gain"
+
+[[variables]]
+name = "ki"
+causality = "tunable"
+type = "f64"
+unit = "1/s"
+description = "integral gain"
+
+[[variables]]
+name = "sp"
+causality = "input"
+type = "f64"
+shape = ["n"]
+description = "setpoint"
+
+[[variables]]
+name = "pv"
+causality = "input"
+type = "f64"
+shape = ["n"]
+description = "process value"
+
+[[variables]]
+name = "u"
+causality = "output"
+type = "f64"
+shape = ["n"]
+description = "manipulated variable"
+
+[abi]
+confirmed = true
+
+[abi.init]
+symbol = "pi_init"
+args = [{ handle = "out" }, { dim = "n", type = "int" }, { builtin = "step_size" }]
+
+[abi.step]
+symbol = "pi_step"
+args = [{ handle = "in" }, { struct = "pi_gains" }, { array = "sp" }, { array = "pv" }, { array = "u" }]
+
+[abi.terminate]
+symbol = "pi_terminate"
+returns = "void"
+args = [{ handle = "in" }]
+
+[abi.structs.pi_gains]
+members = [
+  { name = "kp", type = "double", variable = "kp" },
+  { name = "ki", type = "double", variable = "ki" },
+]

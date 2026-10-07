@@ -2497,7 +2497,7 @@ dependencies = [
  "serde",
  "taktwerk-core",
  "tempfile",
- "thiserror",
+ "thiserror 2.0.21",
  "toml",
 ]
 

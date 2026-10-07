@@ -61,16 +61,37 @@ fn scratch(name: &str) -> PathBuf {
     dir
 }
 
-/// The FMI example with its model path made absolute and its server on `port`.
-fn example_project(dir: &Path, port: u16) -> PathBuf {
+/// The raw PI package, copied out of `examples/raw-pi` and built with its `build.sh` (needs cc).
+fn raw_pi() -> &'static Path {
+    static DIR: OnceLock<PathBuf> = OnceLock::new();
+    DIR.get_or_init(|| {
+        let dir = scratch("raw-pi-package");
+        for f in ["pi.c", "pi.h", "taktwerk-model.toml", "build.sh"] {
+            std::fs::copy(repo().join("examples/raw-pi").join(f), dir.join(f)).unwrap();
+        }
+        let status = Command::new("sh")
+            .arg(dir.join("build.sh"))
+            .status()
+            .unwrap();
+        assert!(status.success(), "building the PI library failed");
+        dir
+    })
+}
+
+/// Example `name` with absolute model paths (FMI models: the Reference `StateSpace`) and its
+/// server on `port`, written to `dir`.
+fn example_project(name: &str, dir: &Path, port: u16) -> PathBuf {
     let text =
-        std::fs::read_to_string(repo().join("examples/fmi-state-space/project.toml")).unwrap();
+        std::fs::read_to_string(repo().join("examples").join(name).join("project.toml")).unwrap();
     let mut doc: toml::Table = text.parse().unwrap();
-    let model = doc["models"]["lag"].as_table_mut().unwrap();
-    model.insert(
-        "path".into(),
-        fmus().join("fmi3/StateSpace").display().to_string().into(),
-    );
+    for (_, model) in doc["models"].as_table_mut().unwrap().iter_mut() {
+        let model = model.as_table_mut().unwrap();
+        let path = match model["kind"].as_str().unwrap() {
+            "fmi" => fmus().join("fmi3/StateSpace"),
+            _ => raw_pi().to_path_buf(),
+        };
+        model.insert("path".into(), path.display().to_string().into());
+    }
     let ua = doc["connector"].as_array_mut().unwrap()[0]
         .as_table_mut()
         .unwrap();
@@ -98,7 +119,7 @@ fn run(args: &[&str], cwd: &Path) -> Output {
 #[test]
 fn check_prints_the_plan() {
     let dir = scratch("check");
-    let file = example_project(&dir, free_port());
+    let file = example_project("fmi-state-space", &dir, free_port());
     let out = run(&["check", file.to_str().unwrap()], &dir);
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert!(
@@ -184,6 +205,21 @@ fn inspect_prints_the_interface() {
         stdout.contains("  A         tunable    f64   [n, n]"),
         "{stdout}"
     );
+}
+
+#[test]
+fn import_header_proposes_an_unconfirmed_descriptor() {
+    let dir = scratch("import");
+    let header = repo().join("examples/raw-pi/pi.h");
+    let out = run(&["import-header", header.to_str().unwrap()], &dir);
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(out.status.success());
+    assert!(stdout.contains("confirmed = false"), "{stdout}");
+    assert!(stdout.contains("symbol = \"pi_step\""), "{stdout}");
+    let args = ["import-header", header.to_str().unwrap(), "-o", "pi.toml"];
+    assert!(run(&args, &dir).status.success());
+    assert!(!run(&args, &dir).status.success());
+    assert!(std::fs::read_to_string(dir.join("pi.toml")).unwrap() == stdout);
 }
 
 /// The engine process; killed if the test fails before it is stopped.
@@ -287,12 +323,12 @@ impl Peer {
     }
 }
 
-#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn run_serves_steps_and_stops_on_sigint() {
-    let dir = scratch("run");
+/// `taktwerk run` on example `name`, with a client session once it is Running.
+async fn start(name: &str) -> (Engine, Peer, u16) {
+    let dir = scratch(&format!("run-{name}"));
     let port = free_port();
-    let file = example_project(&dir, port);
-    let mut engine = Engine(Some(
+    let file = example_project(name, &dir, port);
+    let engine = Engine(Some(
         Command::new(bin())
             .args(["run", file.to_str().unwrap()])
             .current_dir(&dir)
@@ -301,7 +337,6 @@ async fn run_serves_steps_and_stops_on_sigint() {
             .spawn()
             .unwrap(),
     ));
-
     let peer = Peer::connect(
         &format!("opc.tcp://127.0.0.1:{port}"),
         &dir.join("peer-pki"),
@@ -312,17 +347,56 @@ async fn run_serves_steps_and_stops_on_sigint() {
         .get_namespace_index("urn:taktwerk")
         .await
         .unwrap();
-
-    // Running, and the heartbeat advances.
     let start = Instant::now();
-    let first = loop {
+    loop {
         let status = peer.read(ns, "taktwerk.status").await.value;
         if status == Some(Variant::Int32(1)) {
-            break peer.u64(ns, "taktwerk.heartbeat").await;
+            break;
         }
         assert!(start.elapsed() < WAIT, "never Running: {status:?}");
         tokio::time::sleep(Duration::from_millis(20)).await;
-    };
+    }
+    (engine, peer, ns)
+}
+
+fn f64s(v: &[f64]) -> Variant {
+    let values: Vec<Variant> = v.iter().copied().map(Variant::Double).collect();
+    Variant::Array(Box::new(
+        Array::new(VariantScalarTypeId::Double, values).unwrap(),
+    ))
+}
+
+/// Poll scalar element 0 of `name` until `done` holds; returns it.
+async fn until(peer: &Peer, ns: u16, name: &str, done: impl Fn(f64) -> bool) -> f64 {
+    let start = Instant::now();
+    loop {
+        let v = peer.f64s(ns, name).await[0];
+        if done(v) {
+            return v;
+        }
+        assert!(start.elapsed() < WAIT, "{name} stuck at {v}");
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+}
+
+/// SIGINT: a clean exit 0 with the run summary on stdout.
+async fn stop(mut engine: Engine, peer: Peer) {
+    let _ = peer.session.disconnect().await;
+    let out = engine.interrupt();
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(out.status.success(), "{:?}\n{stdout}\n{stderr}", out.status);
+    assert!(stdout.starts_with("cycles "), "{stdout}");
+    assert!(stdout.contains(" overruns "), "{stdout}");
+    assert!(stderr.contains("SIGINT received"), "{stderr}");
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn run_serves_steps_and_stops_on_sigint() {
+    let (engine, peer, ns) = start("fmi-state-space").await;
+
+    // The heartbeat advances.
+    let first = peer.u64(ns, "taktwerk.heartbeat").await;
     tokio::time::sleep(Duration::from_millis(300)).await;
     let later = peer.u64(ns, "taktwerk.heartbeat").await;
     assert!(later >= first + 10, "heartbeat {first} -> {later}");
@@ -332,31 +406,37 @@ async fn run_serves_steps_and_stops_on_sigint() {
 
     // A step on the input: y follows the first-order lag towards 2.
     assert_eq!(peer.f64s(ns, "plant.y").await, [0.0]);
-    let u = Variant::Array(Box::new(
-        Array::new(VariantScalarTypeId::Double, vec![Variant::Double(2.0)]).unwrap(),
-    ));
     let status = peer
         .session
-        .write(&[WriteValue::value_attr(NodeId::new(ns, "plant.u"), u)])
+        .write(&[WriteValue::value_attr(
+            NodeId::new(ns, "plant.u"),
+            f64s(&[2.0]),
+        )])
         .await
         .unwrap();
     assert_eq!(status, [StatusCode::Good]);
-    let start = Instant::now();
-    let y = loop {
-        let y = peer.f64s(ns, "plant.y").await[0];
-        if y > 1.0 {
-            break y;
-        }
-        assert!(start.elapsed() < WAIT, "y stuck at {y}");
-        tokio::time::sleep(Duration::from_millis(50)).await;
-    };
+    let y = until(&peer, ns, "plant.y", |y| y > 1.0).await;
     assert!(y < 2.0, "{y}");
 
-    let _ = peer.session.disconnect().await;
-    let out = engine.interrupt();
-    let stdout = String::from_utf8_lossy(&out.stdout);
-    let stderr = String::from_utf8_lossy(&out.stderr);
-    assert!(out.status.success(), "{:?}\n{stdout}\n{stderr}", out.status);
-    assert!(stdout.starts_with("cycles "), "{stdout}");
-    assert!(stderr.contains("SIGINT received"), "{stderr}");
+    stop(engine, peer).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_raw_controller_closes_the_loop_around_an_fmu() {
+    let (engine, peer, ns) = start("closed-loop").await;
+    assert_eq!(peer.f64s(ns, "plant.y").await, [0.0]);
+    let status = peer
+        .session
+        .write(&[WriteValue::value_attr(
+            NodeId::new(ns, "ctrl.sp"),
+            f64s(&[1.0]),
+        )])
+        .await
+        .unwrap();
+    assert_eq!(status, [StatusCode::Good]);
+    // The PI's integral removes the offset: y settles at the setpoint.
+    until(&peer, ns, "plant.y", |y| (y - 1.0).abs() < 0.02).await;
+    let u = peer.f64s(ns, "ctrl.u").await[0];
+    assert!((u - 1.0).abs() < 0.1, "u = {u}");
+    stop(engine, peer).await;
 }
