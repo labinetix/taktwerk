@@ -1,8 +1,9 @@
 //! The engine's own OPC UA server (`kind = "opcua-server"`).
 //!
 //! Every image signal is a variable node: NodeId `ns=<namespace>;s=<signal name>`, browse path
-//! the name split on `.` into folders under `Objects`. Outputs and system signals are read-only
-//! and follow each publish; inputs and tunables are writable and a write goes to the image.
+//! the name split on `.` into folders under `Objects`. Every node follows each publish; outputs
+//! and system signals are read-only, inputs and tunables are writable and a write goes to the
+//! image.
 //!
 //! ```toml
 //! [[connector]]
@@ -472,7 +473,13 @@ impl Connector for OpcUaServer {
                         if changed.is_err() {
                             break Ok(());
                         }
-                        refresh(&p.handle, &p.manager, &image, p.readable.iter_mut());
+                        // Inputs and tunables too: other connectors and the engine write them.
+                        refresh(
+                            &p.handle,
+                            &p.manager,
+                            &image,
+                            p.readable.iter_mut().chain(p.writable.iter_mut()),
+                        );
                     }
                     Some(first) = rx.recv() => {
                         let mut dirty = BTreeSet::from([first]);
