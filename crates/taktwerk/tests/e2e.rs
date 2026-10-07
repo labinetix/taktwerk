@@ -223,6 +223,40 @@ fn import_header_proposes_an_unconfirmed_descriptor() {
     assert!(run(&args, &dir).status.success());
     assert!(!run(&args, &dir).status.success());
     assert!(std::fs::read_to_string(dir.join("pi.toml")).unwrap() == stdout);
+
+    // The single-entry options reach the importer.
+    let header = repo().join("crates/taktwerk-raw/tests/fixtures/blob_model.h");
+    let out = run(
+        &[
+            "import-header",
+            header.to_str().unwrap(),
+            "--entry",
+            "blob_call",
+            "--arg-struct",
+            "in=blob_input",
+            "--arg-struct",
+            "out=blob_output",
+        ],
+        &dir,
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert!(stdout.contains("reported = true"), "{stdout}");
+    assert!(stdout.contains("abi.structs.blob_output"), "{stdout}");
+    let out = run(
+        &[
+            "import-header",
+            header.to_str().unwrap(),
+            "--arg-struct",
+            "nonsense",
+        ],
+        &dir,
+    );
+    assert!(!out.status.success());
 }
 
 /// The engine process; killed if the test fails before it is stopped.
