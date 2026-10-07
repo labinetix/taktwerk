@@ -1,9 +1,14 @@
 //! The adapter: a loaded package ([`RawModel`]) and its instances.
 //!
-//! An instance owns every byte the library sees: one buffer per variable and one image per
-//! struct, allocated at `instantiate` and never resized. Each call re-derives the addresses it
-//! hands over from those buffers, syncs by-value members, calls, and syncs outputs back; nothing
-//! on that path allocates.
+//! An instance owns every byte the library sees: one buffer per variable, one image per struct
+//! and one storage cell per pointer that carries a `const`, `phase` or `dim`, allocated at
+//! `instantiate` and never resized. Each call re-derives the addresses it hands over from those
+//! buffers, syncs by-value members, calls, and syncs outputs back; nothing on that path
+//! allocates.
+//!
+//! Lengths a library reports (`reported = true`) are zeroed before init and compared with the
+//! bound lengths after init and after every step; the comparison reads a few integers and
+//! allocates only to word the error.
 
 use core::ffi::c_void;
 use std::fs::File;
@@ -19,7 +24,8 @@ use taktwerk_core::value::{Buffer, Dim, Mismatch, ScalarType};
 use tempfile::NamedTempFile;
 
 use crate::descriptor::{
-    ArgRole, Builtin, DESCRIPTOR_FILE, Descriptor, Handle, MemberRole, Plan, ResolvedCall, Returns,
+    ArgRole, Builtin, CValue, DESCRIPTOR_FILE, Descriptor, Handle, MemberRole, Phased, Plan,
+    ResolvedCall, Returns,
 };
 use crate::ffi::{self, Lib, RawFn, Regs};
 
@@ -240,7 +246,10 @@ impl ModelAdapter for RawModel {
         };
         for s in &plan.structs {
             for m in &s.members {
-                if let MemberRole::Dim(idx, ty) = *m {
+                if let MemberRole::Dim(idx, ty)
+                | MemberRole::DimPointer { dim: idx, ty, .. }
+                | MemberRole::Reported { dim: idx, ty, .. } = *m
+                {
                     check_dim(idx, ty)?;
                 }
             }
@@ -278,9 +287,11 @@ impl ModelAdapter for RawModel {
             plan: Arc::clone(plan),
             ok_codes: self.descriptor.abi.ok_codes.clone(),
             dims,
+            dim_names: iface.dimensions.iter().map(|d| d.name.clone()).collect(),
             step_size: spec.step_size,
             arrays,
             images,
+            cells: vec![0; plan.cells],
             handle: 0,
             init,
             step,
@@ -321,11 +332,15 @@ struct RawInstance {
     ok_codes: Vec<i32>,
     /// Bound length per declared dimension.
     dims: Vec<usize>,
+    /// Declared dimension names, for messages.
+    dim_names: Vec<String>,
     step_size: f64,
     /// One buffer per variable, interface order.
     arrays: Vec<CArray>,
     /// One image per struct, plan order.
     images: Vec<Image>,
+    /// Storage cells pointer members and arguments point at, one scalar each.
+    cells: Vec<u64>,
     /// The library's instance handle (`handle = "out"`), as an address.
     handle: usize,
     init: BoundCall,
@@ -387,21 +402,87 @@ impl RawInstance {
         Ok(())
     }
 
-    /// Write every struct image: pointers, dimension lengths, builtins and non-output values.
-    fn sync_structs_before(&mut self, time: f64) -> Result<(), Mismatch> {
+    /// Write the storage cells of every struct and of `args` for `phase`. Runs before any
+    /// address of a cell is taken for this call.
+    fn sync_cells(&mut self, args: &[ArgRole], phase: Phase) -> Result<(), Mismatch> {
         let plan = Arc::clone(&self.plan);
-        for (s, image) in plan.structs.iter().zip(&mut self.images) {
+        let cells = &mut self.cells;
+        let mut set = |cell: usize, value: CValue| -> Result<(), Mismatch> {
+            let slot = cells.get_mut(cell).ok_or(Mismatch)?;
+            let mut bytes = [0_u8; 8];
+            let width = scalar_width(value.ty);
+            if !value.write(bytes.get_mut(..width).ok_or(Mismatch)?) {
+                return Err(Mismatch);
+            }
+            *slot = u64::from_ne_bytes(bytes);
+            Ok(())
+        };
+        for s in &plan.structs {
+            for role in &s.members {
+                match *role {
+                    MemberRole::Fixed {
+                        value,
+                        cell: Some(c),
+                    } => set(c, phase.pick(value))?,
+                    MemberRole::DimPointer { dim, ty, cell } => {
+                        set(cell, dim_value(ty, self.dims[dim]))?;
+                    }
+                    MemberRole::Reported {
+                        cell: Some(c), ty, ..
+                    } if phase == Phase::Init => {
+                        set(c, dim_value(ty, 0))?;
+                    }
+                    _ => {}
+                }
+            }
+        }
+        for a in args {
+            if let ArgRole::Fixed {
+                value,
+                cell: Some(c),
+            } = *a
+            {
+                set(c, phase.pick(value))?;
+            }
+        }
+        Ok(())
+    }
+
+    /// Address of storage cell `cell`. `Vec::as_mut_ptr` materializes no reference, so
+    /// addresses taken here stay valid together.
+    fn cell_addr(&mut self, cell: usize) -> usize {
+        self.cells
+            .as_mut_ptr()
+            .wrapping_add(cell)
+            .expose_provenance()
+    }
+
+    /// Write every struct image: pointers, dimension lengths, builtins, fixed values and
+    /// non-output values.
+    fn sync_structs_before(&mut self, time: f64, phase: Phase) -> Result<(), Mismatch> {
+        let plan = Arc::clone(&self.plan);
+        for (si, s) in plan.structs.iter().enumerate() {
             for (member, role) in s.layout.members().iter().zip(&s.members) {
                 let is_output = |v: usize| plan.outputs.contains(&v);
-                let bytes = image.bytes_mut();
-                let slot = bytes.get_mut(member.range()).ok_or(Mismatch)?;
+                let cell = match *role {
+                    MemberRole::Fixed { cell: Some(c), .. }
+                    | MemberRole::DimPointer { cell: c, .. }
+                    | MemberRole::Reported { cell: Some(c), .. } => Some(self.cell_addr(c)),
+                    _ => None,
+                };
+                let array = match *role {
+                    MemberRole::Pointer(Some(v)) => Some(self.arrays[v].addr()),
+                    _ => None,
+                };
+                let image = self.images.get_mut(si).ok_or(Mismatch)?;
+                let slot = image.bytes_mut().get_mut(member.range()).ok_or(Mismatch)?;
+                if let Some(addr) = cell.or(array) {
+                    slot.copy_from_slice(&addr.to_ne_bytes());
+                    continue;
+                }
                 match *role {
-                    MemberRole::Pointer(Some(v)) => {
-                        slot.copy_from_slice(&self.arrays[v].addr().to_ne_bytes());
-                    }
-                    MemberRole::Pointer(None) => slot.fill(0),
+                    MemberRole::Pointer(_) => slot.fill(0),
                     MemberRole::Value(v) if !is_output(v) => self.arrays[v].first_bytes(slot)?,
-                    MemberRole::Value(_) | MemberRole::Scratch => {}
                     MemberRole::Dim(d, ty) => int_bytes(ty, self.dims[d] as u64, slot)?,
                     MemberRole::Builtin(b) => {
                         let value = match b {
@@ -410,10 +491,57 @@ impl RawInstance {
                         };
                         slot.copy_from_slice(&value.to_ne_bytes());
                     }
+                    MemberRole::Fixed { value, .. } => {
+                        if !phase.pick(value).write(slot) {
+                            return Err(Mismatch);
+                        }
+                    }
+                    MemberRole::Reported { .. } if phase == Phase::Init => slot.fill(0),
+                    MemberRole::Value(_)
+                    | MemberRole::Scratch
+                    | MemberRole::Reported { .. }
+                    | MemberRole::DimPointer { .. } => {}
                 }
             }
         }
         Ok(())
+    }
+
+    /// Compare every reported length with its bound length.
+    fn check_reported(&self, call: &'static str) -> Result<(), ModelError> {
+        for (s, image) in self.plan.structs.iter().zip(&self.images) {
+            for (member, role) in s.layout.members().iter().zip(&s.members) {
+                let MemberRole::Reported { dim, ty, cell } = *role else {
+                    continue;
+                };
+                let width = scalar_width(ty);
+                let cell_bytes;
+                let bytes = match cell {
+                    Some(c) => {
+                        cell_bytes = self.cells.get(c).map(|v| v.to_ne_bytes());
+                        cell_bytes.as_ref().and_then(|b| b.get(..width))
+                    }
+                    None => image.bytes().get(member.range()),
+                };
+                let got = bytes.and_then(|b| read_int(ty, b));
+                let bound = self.dims[dim];
+                if got != Some(bound as i128) {
+                    return Err(ModelError::Instantiate(format!(
+                        "{}: {call}: the library reports {}.{} = {} but dimension {} is bound to {bound}",
+                        self.id,
+                        s.name,
+                        member.name,
+                        got.map_or_else(|| "?".to_owned(), |g| g.to_string()),
+                        self.plan_dim_name(dim),
+                    )));
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn plan_dim_name(&self, dim: usize) -> String {
+        self.dim_names.get(dim).cloned().unwrap_or_default()
     }
 
     /// Read every by-value output member back into its buffer.
@@ -433,7 +561,7 @@ impl RawInstance {
     }
 
     /// Fill the register images of one call from the current buffers.
-    fn regs(&mut self, args: &[ArgRole], time: f64) -> Regs {
+    fn regs(&mut self, args: &[ArgRole], time: f64, phase: Phase) -> Regs {
         let mut regs = Regs::default();
         let (mut ni, mut nf) = (0_usize, 0_usize);
         let mut push_int = |regs: &mut Regs, v: u64| {
@@ -464,6 +592,14 @@ impl RawInstance {
                     let slot: *mut usize = &mut self.handle;
                     push_int(&mut regs, slot.expose_provenance() as u64);
                 }
+                ArgRole::Fixed { cell: Some(c), .. } => {
+                    let addr = self.cell_addr(c);
+                    push_int(&mut regs, addr as u64);
+                }
+                ArgRole::Fixed { value, cell: None } => match phase.pick(value).reg() {
+                    (true, bits) => push_float(&mut regs, f64::from_bits(bits)),
+                    (false, bits) => push_int(&mut regs, bits),
+                },
             }
         }
         regs
@@ -472,7 +608,7 @@ impl RawInstance {
     /// One full call: sync in, call, check the return code, sync out.
     fn invoke(
         &mut self,
-        which: Which,
+        which: Phase,
         name: &'static str,
         time: f64,
         io: &mut StepIo,
@@ -487,14 +623,16 @@ impl RawInstance {
         let sync_error = |id: &str| {
             ModelError::Instantiate(format!("{id}: {name}: struct member width mismatch"))
         };
-        self.sync_structs_before(time)
-            .map_err(|_| sync_error(&self.id))?;
         let plan = Arc::clone(&self.plan);
         let (call, resolved) = match which {
-            Which::Init => (self.init, &plan.init),
-            Which::Step => (self.step, &plan.step),
+            Phase::Init => (self.init, &plan.init),
+            Phase::Step => (self.step, &plan.step),
         };
-        let regs = self.regs(&resolved.args, time);
+        self.sync_cells(&resolved.args, which)
+            .map_err(|_| sync_error(&self.id))?;
+        self.sync_structs_before(time, which)
+            .map_err(|_| sync_error(&self.id))?;
+        let regs = self.regs(&resolved.args, time, which);
         let rc = ffi::call(call.f, &regs);
         if call.returns == Returns::Int && !self.ok_codes.contains(&rc) {
             return Err(ModelError::Call {
@@ -503,25 +641,36 @@ impl RawInstance {
                 detail: format!("{}: {}", self.id, resolved.symbol),
             });
         }
+        self.check_reported(name)?;
         self.sync_structs_after()
             .map_err(|_| sync_error(&self.id))?;
         self.copy_out(io, name)
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-enum Which {
+/// Which call runs; picks the `phase` value. Terminate uses the step value.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Phase {
     Init,
     Step,
 }
 
+impl Phase {
+    const fn pick(self, value: Phased) -> CValue {
+        match self {
+            Self::Init => value.init,
+            Self::Step => value.step,
+        }
+    }
+}
+
 impl ModelInstance for RawInstance {
     fn init(&mut self, start_time: f64, io: &mut StepIo) -> Result<(), ModelError> {
-        self.invoke(Which::Init, "init", start_time, io)
+        self.invoke(Phase::Init, "init", start_time, io)
     }
 
     fn step(&mut self, time: f64, io: &mut StepIo) -> Result<(), ModelError> {
-        self.invoke(Which::Step, "step", time, io)
+        self.invoke(Phase::Step, "step", time, io)
     }
 
     fn terminate(&mut self) {
@@ -536,10 +685,12 @@ impl ModelInstance for RawInstance {
         let Some(resolved) = plan.terminate.as_ref() else {
             return;
         };
-        if self.sync_structs_before(0.0).is_err() {
+        if self.sync_cells(&resolved.args, Phase::Step).is_err()
+            || self.sync_structs_before(0.0, Phase::Step).is_err()
+        {
             return;
         }
-        let regs = self.regs(&resolved.args, 0.0);
+        let regs = self.regs(&resolved.args, 0.0, Phase::Step);
         let _ = ffi::call(call.f, &regs);
     }
 }
@@ -712,6 +863,39 @@ impl CArray {
     }
 }
 
+/// Width in bytes of a C scalar on this target.
+const fn scalar_width(ty: ScalarType) -> usize {
+    crate::layout::scalar_size_align(ty).0
+}
+
+/// A bound length as a [`CValue`] of integer type `ty` (fit checked at instantiate).
+const fn dim_value(ty: ScalarType, len: usize) -> CValue {
+    CValue {
+        ty,
+        bits: len as u64,
+    }
+}
+
+/// The C integer of type `ty` in `bytes`, widened.
+fn read_int(ty: ScalarType, bytes: &[u8]) -> Option<i128> {
+    macro_rules! get {
+        ($t:ty) => {
+            Some(i128::from(<$t>::from_ne_bytes(bytes.try_into().ok()?)))
+        };
+    }
+    match ty {
+        ScalarType::I64 => get!(i64),
+        ScalarType::U64 => get!(u64),
+        ScalarType::I32 => get!(i32),
+        ScalarType::U32 => get!(u32),
+        ScalarType::I16 => get!(i16),
+        ScalarType::U16 => get!(u16),
+        ScalarType::I8 => get!(i8),
+        ScalarType::U8 => get!(u8),
+        ScalarType::F64 | ScalarType::F32 | ScalarType::Bool => None,
+    }
+}
+
 /// Write `value` as the C integer type `ty` into `slot`.
 fn int_bytes(ty: ScalarType, value: u64, slot: &mut [u8]) -> Result<(), Mismatch> {
     macro_rules! put {
@@ -757,6 +941,10 @@ impl Image {
 
     fn bytes_mut(&mut self) -> &mut [u8] {
         &mut self.bytes[self.start..self.start + self.size]
+    }
+
+    fn bytes(&self) -> &[u8] {
+        &self.bytes[self.start..self.start + self.size]
     }
 
     fn addr(&mut self) -> usize {

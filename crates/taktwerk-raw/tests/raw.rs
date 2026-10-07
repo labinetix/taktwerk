@@ -15,7 +15,9 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use taktwerk_core::model::{InstanceSpec, ModelAdapter, ModelError, StepIo};
 use taktwerk_core::value::Buffer;
 use taktwerk_raw::descriptor::DESCRIPTOR_FILE;
-use taktwerk_raw::{Descriptor, RawModel, arch_dir, import_header};
+use taktwerk_raw::{
+    Descriptor, ImportOptions, RawModel, arch_dir, import_header, import_header_with,
+};
 
 const FIXTURES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures");
 
@@ -157,6 +159,114 @@ symbol = "pi_destroy"
 args = [{ handle = "in" }]
 "#;
 
+/// `blob_model.h`: one entry point for init and step, an id and two opaque struct pointers.
+const BLOB_DESCRIPTOR: &str = r#"
+name = "blob"
+
+[[dimensions]]
+name = "nu"
+min = 1
+
+[[dimensions]]
+name = "ny"
+min = 1
+
+[[dimensions]]
+name = "np"
+min = 1
+
+[[variables]]
+name = "k"
+causality = "tunable"
+type = "f64"
+
+[[variables]]
+name = "u"
+causality = "input"
+type = "f64"
+shape = ["nu"]
+
+[[variables]]
+name = "counter"
+causality = "output"
+type = "i32"
+
+[[variables]]
+name = "title"
+causality = "parameter"
+type = "u8"
+shape = [16]
+
+[[variables]]
+name = "label"
+causality = "output"
+type = "u8"
+shape = [32]
+
+[[variables]]
+name = "y"
+causality = "output"
+type = "f64"
+shape = ["ny"]
+
+[[variables]]
+name = "gain"
+causality = "output"
+type = "f64"
+shape = ["ny", "nu"]
+
+[[variables]]
+name = "p"
+causality = "output"
+type = "f64"
+shape = ["np"]
+
+[[variables]]
+name = "names"
+causality = "output"
+type = "u8"
+shape = [24]
+
+[[variables]]
+name = "ready"
+causality = "output"
+type = "u8"
+
+[abi]
+confirmed = true
+
+[abi.init]
+symbol = "blob_call"
+args = [{ const = 7, type = "int" }, { struct = "blob_input" }, { struct = "blob_output" }]
+
+[abi.step]
+symbol = "blob_call"
+args = [{ const = 7, type = "int" }, { struct = "blob_input" }, { struct = "blob_output" }]
+
+[abi.structs.blob_input]
+members = [
+  { name = "init_flag", type = "int32_t *", phase = { init = 1, step = 0 } },
+  { name = "variant", type = "int32_t", const = 1 },
+  { name = "k", type = "double *", variable = "k" },
+  { name = "u", type = "double *", variable = "u" },
+  { name = "counter", type = "int32_t *", variable = "counter" },
+  { name = "title", type = "char *", variable = "title" },
+]
+
+[abi.structs.blob_output]
+members = [
+  { name = "label", type = "char *", variable = "label" },
+  { name = "y", type = "double *", variable = "y" },
+  { name = "gain", type = "double *", variable = "gain" },
+  { name = "p", type = "double *", variable = "p" },
+  { name = "names", type = "char *", variable = "names" },
+  { name = "dim_nu", type = "int32_t *", dim = "nu", reported = true },
+  { name = "dim_ny", type = "int32_t *", dim = "ny", reported = true },
+  { name = "dim_np", type = "int32_t *", dim = "np", reported = true },
+  { name = "ready", type = "uint8_t *", variable = "ready" },
+]
+"#;
+
 /// Compiled fixtures, built once per test binary.
 struct Built {
     _dir: tempfile::TempDir,
@@ -168,7 +278,11 @@ fn built() -> &'static Built {
     BUILT.get_or_init(|| {
         let dir = tempfile::tempdir().unwrap();
         let root = dir.path().to_owned();
-        for (name, descriptor) in [("ss", SS_DESCRIPTOR), ("pi", PI_DESCRIPTOR)] {
+        for (name, descriptor) in [
+            ("ss", SS_DESCRIPTOR),
+            ("pi", PI_DESCRIPTOR),
+            ("blob_model", BLOB_DESCRIPTOR),
+        ] {
             let package = root.join(name);
             let lib = package.join("lib").join(arch_dir());
             std::fs::create_dir_all(&lib).unwrap();
@@ -186,6 +300,11 @@ fn built() -> &'static Built {
             "-o",
             root.join("ss_offsets").to_str().unwrap(),
             &format!("{FIXTURES}/ss_offsets.c"),
+        ]);
+        cc(&[
+            "-o",
+            root.join("blob_offsets").to_str().unwrap(),
+            &format!("{FIXTURES}/blob_offsets.c"),
         ]);
         Built { _dir: dir, root }
     })
@@ -299,14 +418,19 @@ fn the_header_import_proposes_the_documented_descriptor_unconfirmed() {
 
 #[test]
 fn struct_layouts_match_the_compiler() {
-    let output = Command::new(built().root.join("ss_offsets"))
-        .output()
-        .unwrap();
+    for (oracle, descriptor) in [
+        ("ss_offsets", SS_DESCRIPTOR),
+        ("blob_offsets", BLOB_DESCRIPTOR),
+    ] {
+        check_layout(oracle, descriptor);
+    }
+}
+
+fn check_layout(oracle: &str, descriptor: &str) {
+    let output = Command::new(built().root.join(oracle)).output().unwrap();
     let text = String::from_utf8(output.stdout).unwrap();
-    let plan = Descriptor::parse(SS_DESCRIPTOR)
-        .unwrap()
-        .validate()
-        .unwrap();
+    assert!(!text.is_empty(), "{oracle} printed nothing");
+    let plan = Descriptor::parse(descriptor).unwrap().validate().unwrap();
     for line in text.lines() {
         let mut fields = line.split_whitespace();
         let name = fields.next().unwrap();
@@ -600,4 +724,247 @@ fn a_missing_symbol_or_library_is_refused_at_load() {
         ),
     );
     assert!(RawModel::load(&dir).is_err());
+}
+
+// ==========================================================================
+// The blob fixture: a single entry point for init and step.
+// ==========================================================================
+
+fn bytes(text: &str, capacity: usize) -> Buffer {
+    let mut v = text.as_bytes().to_vec();
+    v.resize(capacity, 0);
+    Buffer::U8(v)
+}
+
+/// The text in a NUL-terminated byte buffer.
+fn text(buffer: &Buffer) -> String {
+    match buffer {
+        Buffer::U8(v) => {
+            let end = v.iter().position(|b| *b == 0).unwrap_or(v.len());
+            String::from_utf8(v[..end].to_vec()).unwrap()
+        }
+        other => panic!("not u8: {other:?}"),
+    }
+}
+
+/// Variant 1 of the fixture reports nu = 2, ny = 3, np = 4.
+fn blob_spec(id: &str, nu: usize, title: &str) -> (InstanceSpec, StepIo) {
+    let (ny, np) = (3, 4);
+    let spec = InstanceSpec {
+        id: id.to_owned(),
+        dims: BTreeMap::from([
+            ("nu".to_owned(), nu),
+            ("ny".to_owned(), ny),
+            ("np".to_owned(), np),
+        ]),
+        params: BTreeMap::from([
+            ("k".to_owned(), f64s(&[2.0])),
+            ("title".to_owned(), bytes(title, 16)),
+        ]),
+        step_size: 0.1,
+    };
+    // Outputs in interface order: counter, label, y, gain, p, names, ready.
+    let io = StepIo {
+        inputs: vec![f64s(&vec![0.0; nu])],
+        outputs: vec![
+            Buffer::I32(vec![0]),
+            Buffer::U8(vec![0; 32]),
+            f64s(&vec![0.0; ny]),
+            f64s(&vec![0.0; ny * nu]),
+            f64s(&vec![0.0; np]),
+            Buffer::U8(vec![0; 24]),
+            Buffer::U8(vec![0]),
+        ],
+        tunables: vec![f64s(&[2.0])],
+        tunables_changed: false,
+    };
+    (spec, io)
+}
+
+#[test]
+fn a_single_entry_point_runs_init_and_steps() {
+    let model = RawModel::load(&package("blob_model")).unwrap();
+    let (spec, mut io) = blob_spec("blob", 2, "tank 3");
+    let mut inst = model.instantiate(&spec).unwrap();
+    inst.init(0.0, &mut io).unwrap();
+    // Init: the phase member said 1, the library reported its sizes and filled the matrix.
+    let gain = as_f64s(&io.outputs[3]);
+    assert_close(&gain, &[1.0, 1.1, 2.0, 2.1, 3.0, 3.1]);
+    assert_close(&as_f64s(&io.outputs[4]), &[0.0, 0.5, 1.0, 1.5]);
+    assert_eq!(io.outputs[0], Buffer::I32(vec![0]));
+    assert_eq!(
+        text(&io.outputs[1]),
+        "tank 3",
+        "the caller's text echoed back"
+    );
+    assert_eq!(text(&io.outputs[5]), "k;u;y;p");
+    assert_eq!(
+        io.outputs[6],
+        Buffer::U8(vec![2]),
+        "a true byte that is not 1"
+    );
+    // Steps: the phase member says 0; the library re-reads the sizes and counts in the input
+    // struct's write-back member.
+    let mut k = 2.0;
+    for step in 1..=5 {
+        let u = [0.5 * step as f64, -1.0];
+        if step == 4 {
+            k = -0.5;
+            io.tunables[0] = f64s(&[k]);
+            io.tunables_changed = true;
+        }
+        io.inputs[0] = f64s(&u);
+        inst.step(step as f64 * 0.1, &mut io).unwrap();
+        io.tunables_changed = false;
+        let want: Vec<f64> = (0..3)
+            .map(|i| k * (gain[i * 2] * u[0] + gain[i * 2 + 1] * u[1]))
+            .collect();
+        assert_close(&as_f64s(&io.outputs[2]), &want);
+        assert_eq!(io.outputs[0], Buffer::I32(vec![step]));
+        assert_eq!(io.outputs[6], Buffer::U8(vec![2]));
+    }
+    inst.terminate();
+}
+
+#[test]
+fn an_empty_title_gets_the_library_name() {
+    let model = RawModel::load(&package("blob_model")).unwrap();
+    let (spec, mut io) = blob_spec("untitled", 2, "");
+    let mut inst = model.instantiate(&spec).unwrap();
+    inst.init(0.0, &mut io).unwrap();
+    assert_eq!(text(&io.outputs[1]), "blob");
+}
+
+#[test]
+fn a_true_byte_mapped_to_bool_is_normalised() {
+    let descriptor = BLOB_DESCRIPTOR.replace(
+        "name = \"ready\"\ncausality = \"output\"\ntype = \"u8\"",
+        "name = \"ready\"\ncausality = \"output\"\ntype = \"bool\"",
+    );
+    assert_ne!(descriptor, BLOB_DESCRIPTOR);
+    let model = RawModel::load(&variant("blob_model", &descriptor)).unwrap();
+    let (spec, mut io) = blob_spec("flagged", 2, "x");
+    io.outputs[6] = Buffer::Bool(vec![false]);
+    let mut inst = model.instantiate(&spec).unwrap();
+    inst.init(0.0, &mut io).unwrap();
+    assert_eq!(io.outputs[6], Buffer::Bool(vec![true]));
+    inst.step(0.1, &mut io).unwrap();
+    assert_eq!(io.outputs[6], Buffer::Bool(vec![true]));
+}
+
+#[test]
+fn a_reported_size_other_than_the_bound_one_fails_init() {
+    let model = RawModel::load(&package("blob_model")).unwrap();
+    let (spec, mut io) = blob_spec("wide", 3, "x");
+    let mut inst = model.instantiate(&spec).unwrap();
+    let err = inst.init(0.0, &mut io).unwrap_err();
+    match err {
+        ModelError::Instantiate(ref m) => {
+            assert!(
+                m.contains("dim_nu = 2") && m.contains("bound to 3") && m.contains("nu"),
+                "{m}"
+            );
+        }
+        other => panic!("{other}"),
+    }
+}
+
+#[test]
+fn an_unknown_id_fails_the_call_with_its_code() {
+    let model = RawModel::load(&variant(
+        "blob_model",
+        &BLOB_DESCRIPTOR.replace("const = 7", "const = 8"),
+    ))
+    .unwrap();
+    let (spec, mut io) = blob_spec("stranger", 2, "x");
+    let mut inst = model.instantiate(&spec).unwrap();
+    match inst.init(0.0, &mut io).unwrap_err() {
+        ModelError::Call { call, code, .. } => {
+            assert_eq!(call, "init");
+            assert_eq!(code, -3);
+        }
+        other => panic!("{other}"),
+    }
+}
+
+#[test]
+fn a_step_value_on_init_is_refused_by_the_library() {
+    // Without the phase the library is never initialised: its sizes stay zero.
+    let model = RawModel::load(&variant(
+        "blob_model",
+        &BLOB_DESCRIPTOR.replace("phase = { init = 1, step = 0 }", "const = 0"),
+    ))
+    .unwrap();
+    let (spec, mut io) = blob_spec("never", 2, "x");
+    let mut inst = model.instantiate(&spec).unwrap();
+    match inst.init(0.0, &mut io).unwrap_err() {
+        ModelError::Call { code, .. } => assert_eq!(code, -4),
+        other => panic!("{other}"),
+    }
+}
+
+#[test]
+fn the_header_import_proposes_the_single_entry_descriptor() {
+    let options = ImportOptions {
+        entry: Some("blob_call".to_owned()),
+        arg_structs: vec![
+            ("in".to_owned(), "blob_input".to_owned()),
+            ("out".to_owned(), "blob_output".to_owned()),
+        ],
+    };
+    let proposal =
+        import_header_with(Path::new(&format!("{FIXTURES}/blob_model.h")), &options).unwrap();
+    let d = &proposal.descriptor;
+    assert!(!d.abi.confirmed);
+    assert_eq!(d.abi.init, d.abi.step);
+    assert_eq!(d.abi.step.symbol, "blob_call");
+    assert!(d.abi.terminate.is_none());
+    let args = &d.abi.step.args;
+    assert!(args[0].const_.is_some(), "{args:?}");
+    assert_eq!(args[1].struct_.as_deref(), Some("blob_input"));
+    assert_eq!(args[2].struct_.as_deref(), Some("blob_output"));
+    let input = &d.abi.structs["blob_input"].members;
+    assert!(input[0].phase.is_some(), "init_flag: {:?}", input[0]);
+    let output = &d.abi.structs["blob_output"].members;
+    for (member, dim) in [("dim_nu", "nu"), ("dim_ny", "ny"), ("dim_np", "np")] {
+        let m = output.iter().find(|m| m.name == member).unwrap();
+        assert!(m.reported, "{member}");
+        assert_eq!(m.dim.as_deref(), Some(dim));
+    }
+    let dims: Vec<&str> = d
+        .interface
+        .dimensions
+        .iter()
+        .map(|d| d.name.as_str())
+        .collect();
+    assert_eq!(dims, vec!["np", "nu", "ny"]);
+    let u = d
+        .interface
+        .variables
+        .iter()
+        .find(|v| v.name == "u")
+        .unwrap();
+    assert_eq!(
+        u.shape,
+        vec![taktwerk_core::value::Dim::Symbol("nu".to_owned())]
+    );
+    assert!(
+        proposal.notes.iter().any(|n| n.contains("TODO")),
+        "{:?}",
+        proposal.notes
+    );
+    // The proposal round-trips, stays refused until confirmed, and validates once confirmed.
+    let text = proposal.to_toml().unwrap();
+    let mut back = Descriptor::parse(&text).unwrap();
+    assert_eq!(&back, d);
+    assert!(back.validate().is_err());
+    back.abi.confirmed = true;
+    back.validate().unwrap();
+
+    // Options naming what the header lacks are refused.
+    let bad = ImportOptions {
+        entry: Some("blob_call".to_owned()),
+        arg_structs: vec![("in".to_owned(), "no_such".to_owned())],
+    };
+    assert!(import_header_with(Path::new(&format!("{FIXTURES}/blob_model.h")), &bad).is_err());
 }

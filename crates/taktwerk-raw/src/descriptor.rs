@@ -84,7 +84,8 @@ pub enum Returns {
     Void,
 }
 
-/// One argument. Exactly one of `struct`, `array`, `value`, `dim`, `builtin`, `handle` is set.
+/// One argument. Exactly one of `struct`, `array`, `value`, `dim`, `builtin`, `handle`,
+/// `const`, `phase` is set.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Arg {
@@ -106,9 +107,36 @@ pub struct Arg {
     /// The instance handle of a `multiple` library.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub handle: Option<Handle>,
-    /// C type of a `dim` argument.
+    /// The same number on every call; `type` gives the C type (default `int`).
+    #[serde(rename = "const", default, skip_serializing_if = "Option::is_none")]
+    pub const_: Option<Number>,
+    /// One number for init, another for step (and terminate); `type` as for `const`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub phase: Option<PhaseValues>,
+    /// C type of a `dim`, `const` or `phase` argument. A pointer type (`int *`) passes the
+    /// address of engine-owned storage holding the value.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
     pub ty: Option<CType>,
+}
+
+/// A number in the descriptor, converted to the C type it is written as.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum Number {
+    /// An integer literal; admitted for every type that can hold it.
+    Int(i64),
+    /// A floating-point literal; admitted for `double` and `float` only.
+    Float(f64),
+}
+
+/// `phase = { init = …, step = … }`: the value of the init call and of every later call.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PhaseValues {
+    /// Value on the init call.
+    pub init: Number,
+    /// Value on step and terminate calls.
+    pub step: Number,
 }
 
 /// A value the engine supplies.
@@ -139,8 +167,8 @@ pub struct StructSpec {
     pub members: Vec<Member>,
 }
 
-/// One struct member. At most one of `variable`, `dim`, `builtin` is set; an unmapped pointer
-/// is `NULL`, an unmapped scalar stays zero.
+/// One struct member. At most one of `variable`, `dim`, `builtin`, `const`, `phase` is set; an
+/// unmapped pointer is `NULL`, an unmapped scalar stays zero.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Member {
@@ -158,6 +186,114 @@ pub struct Member {
     /// A value the engine supplies (`double` member).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub builtin: Option<Builtin>,
+    /// The same number on every call. A pointer member points at engine-owned storage.
+    #[serde(rename = "const", default, skip_serializing_if = "Option::is_none")]
+    pub const_: Option<Number>,
+    /// One number for init, another for step and terminate. A pointer member points at
+    /// engine-owned storage.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub phase: Option<PhaseValues>,
+    /// With `dim`: the library writes the length (zeroed before init, compared with the bound
+    /// length after init and after every step) instead of reading it.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub reported: bool,
+}
+
+#[expect(
+    clippy::trivially_copy_pass_by_ref,
+    reason = "serde's skip_serializing_if signature"
+)]
+const fn is_false(b: &bool) -> bool {
+    !*b
+}
+
+/// A number resolved to its C type: the value's bits, two's complement for integers, IEEE for
+/// floats (`float` in the low 32 bits).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CValue {
+    /// C type.
+    pub ty: ScalarType,
+    /// The value's bits.
+    pub bits: u64,
+}
+
+impl CValue {
+    /// Convert `n` to `ty`.
+    ///
+    /// # Errors
+    /// A value out of range for an integer type, a fraction for an integer type, or a `bool`
+    /// other than 0 or 1.
+    pub fn new(ty: ScalarType, n: Number) -> Result<Self, String> {
+        let int_range = |lo: i128, hi: i128, v: i64| -> Result<u64, String> {
+            if (lo..=hi).contains(&i128::from(v)) {
+                Ok(v as u64)
+            } else {
+                Err(format!("{v} does not fit a {ty:?}"))
+            }
+        };
+        let bits = match (ty, n) {
+            (ScalarType::F64, Number::Float(f)) => f.to_bits(),
+            (ScalarType::F64, Number::Int(i)) => (i as f64).to_bits(),
+            (ScalarType::F32, Number::Float(f)) => u64::from((f as f32).to_bits()),
+            (ScalarType::F32, Number::Int(i)) => u64::from((i as f32).to_bits()),
+            (_, Number::Float(f)) => return Err(format!("{f} is not an integer, as {ty:?} needs")),
+            (ScalarType::I64, Number::Int(i)) => i as u64,
+            (ScalarType::U64, Number::Int(i)) => int_range(0, i128::from(u64::MAX), i)?,
+            (ScalarType::I32, Number::Int(i)) => int_range(i32::MIN.into(), i32::MAX.into(), i)?,
+            (ScalarType::U32, Number::Int(i)) => int_range(0, u32::MAX.into(), i)?,
+            (ScalarType::I16, Number::Int(i)) => int_range(i16::MIN.into(), i16::MAX.into(), i)?,
+            (ScalarType::U16, Number::Int(i)) => int_range(0, u16::MAX.into(), i)?,
+            (ScalarType::I8, Number::Int(i)) => int_range(i8::MIN.into(), i8::MAX.into(), i)?,
+            (ScalarType::U8, Number::Int(i)) => int_range(0, u8::MAX.into(), i)?,
+            (ScalarType::Bool, Number::Int(i)) => int_range(0, 1, i)?,
+        };
+        Ok(Self { ty, bits })
+    }
+
+    /// Write the value's native bytes into `slot`; `false` when `slot` is not exactly as wide.
+    #[must_use]
+    pub fn write(self, slot: &mut [u8]) -> bool {
+        macro_rules! put {
+            ($v:expr) => {{
+                let bytes = $v.to_ne_bytes();
+                if bytes.len() != slot.len() {
+                    return false;
+                }
+                slot.copy_from_slice(&bytes);
+                true
+            }};
+        }
+        let b = self.bits;
+        match self.ty {
+            ScalarType::F64 | ScalarType::I64 | ScalarType::U64 => put!(b),
+            ScalarType::F32 | ScalarType::I32 | ScalarType::U32 => put!(b as u32),
+            ScalarType::I16 | ScalarType::U16 => put!(b as u16),
+            ScalarType::I8 | ScalarType::U8 | ScalarType::Bool => put!(b as u8),
+        }
+    }
+
+    /// Register image when passed by value: `(is_float, bits)`. Narrow signed integers are
+    /// sign-extended to 32 bits, as C requires.
+    #[must_use]
+    pub const fn reg(self) -> (bool, u64) {
+        let b = self.bits;
+        match self.ty {
+            ScalarType::F64 | ScalarType::F32 => (true, b),
+            ScalarType::I32 | ScalarType::I16 | ScalarType::I8 => {
+                (false, (b as i64 as i32) as u32 as u64)
+            }
+            _ => (false, b),
+        }
+    }
+}
+
+/// A value that may differ between the init call and the calls after it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Phased {
+    /// On the init call.
+    pub init: CValue,
+    /// On step and terminate calls.
+    pub step: CValue,
 }
 
 /// A C type the descriptor admits: an optional scalar base (`None` is `void`) and at most one
@@ -321,6 +457,9 @@ pub struct Plan {
     pub outputs: Vec<usize>,
     /// Indices of `Tunable` variables, interface order.
     pub tunables: Vec<usize>,
+    /// Engine-owned storage cells (one 8-byte scalar each) that pointer members and arguments
+    /// carrying a `const`, `phase` or `dim` point at.
+    pub cells: usize,
 }
 
 /// A struct with its layout and the meaning of every member.
@@ -347,6 +486,33 @@ pub enum MemberRole {
     Builtin(Builtin),
     /// Unmapped scalar, zero.
     Scratch,
+    /// A `const` or `phase` value, in the struct (`cell = None`) or in storage cell `cell`
+    /// the member points at.
+    Fixed {
+        /// The value per phase.
+        value: Phased,
+        /// Storage cell for a pointer member.
+        cell: Option<usize>,
+    },
+    /// A pointer to storage cell `cell` holding dimension `dim`'s bound length as `ty`.
+    DimPointer {
+        /// Dimension index.
+        dim: usize,
+        /// C integer type.
+        ty: ScalarType,
+        /// Storage cell.
+        cell: usize,
+    },
+    /// A length the library writes: in the struct (`cell = None`) or in storage cell `cell`.
+    /// Zeroed before init, compared with dimension `dim`'s bound length after each call.
+    Reported {
+        /// Dimension index.
+        dim: usize,
+        /// C integer type.
+        ty: ScalarType,
+        /// Storage cell for a pointer member.
+        cell: Option<usize>,
+    },
 }
 
 /// A call with its arguments resolved.
@@ -375,6 +541,58 @@ pub enum ArgRole {
     Builtin(Builtin),
     /// The instance handle.
     Handle(Handle),
+    /// A `const` or `phase` value by value (`cell = None`), or the address of storage cell
+    /// `cell` holding it.
+    Fixed {
+        /// The value per phase.
+        value: Phased,
+        /// Storage cell for a pointer argument.
+        cell: Option<usize>,
+    },
+}
+
+/// `int`, the default type of `dim`, `const` and `phase` arguments.
+const C_INT: CType = CType {
+    base: Some(ScalarType::I32),
+    pointer: false,
+};
+
+/// Whether a C scalar `c` carries a variable of type `var`: the same type, or a byte for a
+/// `bool` (kept as bytes and normalised, any non-zero byte is true) and the reverse.
+fn carries(c: ScalarType, var: ScalarType) -> bool {
+    c == var
+        || matches!(
+            (c, var),
+            (ScalarType::U8, ScalarType::Bool) | (ScalarType::Bool, ScalarType::U8)
+        )
+}
+
+/// Hand out the next storage cell.
+const fn next_cell(cells: &mut usize) -> usize {
+    let cell = *cells;
+    *cells += 1;
+    cell
+}
+
+/// A `const` or `phase` resolved against the C type, or `None` when neither is set.
+fn phased(
+    constant: Option<Number>,
+    phase: Option<PhaseValues>,
+    ty: CType,
+) -> Result<Option<Phased>, String> {
+    let (init, step) = match (constant, phase) {
+        (Some(c), None) => (c, c),
+        (None, Some(p)) => (p.init, p.step),
+        (None, None) => return Ok(None),
+        (Some(_), Some(_)) => return Err("both const and phase".to_owned()),
+    };
+    let Some(base) = ty.base else {
+        return Err("a value needs a scalar type, not void *".to_owned());
+    };
+    Ok(Some(Phased {
+        init: CValue::new(base, init)?,
+        step: CValue::new(base, step)?,
+    }))
 }
 
 /// Index helper for `[abi.structs]`.
@@ -467,18 +685,33 @@ impl Descriptor {
             .enumerate()
             .map(|(i, k)| (k.as_str(), i))
             .collect();
+        let mut cells = 0_usize;
         let mut structs = Vec::with_capacity(self.abi.structs.len());
         for (name, spec) in &self.abi.structs {
-            structs.push(self.resolve_struct(name, spec, &vars, &dims)?);
+            structs.push(self.resolve_struct(name, spec, &vars, &dims, &mut cells)?);
         }
 
-        let init = self.resolve_call("init", &self.abi.init, &struct_index, &vars, &dims)?;
-        let step = self.resolve_call("step", &self.abi.step, &struct_index, &vars, &dims)?;
+        let init = self.resolve_call(
+            "init",
+            &self.abi.init,
+            &struct_index,
+            &vars,
+            &dims,
+            &mut cells,
+        )?;
+        let step = self.resolve_call(
+            "step",
+            &self.abi.step,
+            &struct_index,
+            &vars,
+            &dims,
+            &mut cells,
+        )?;
         let terminate = self
             .abi
             .terminate
             .as_ref()
-            .map(|c| self.resolve_call("terminate", c, &struct_index, &vars, &dims))
+            .map(|c| self.resolve_call("terminate", c, &struct_index, &vars, &dims, &mut cells))
             .transpose()?;
 
         let handle_out = |c: &ResolvedCall| {
@@ -522,6 +755,7 @@ impl Descriptor {
             inputs: by_causality(Causality::Input),
             outputs: by_causality(Causality::Output),
             tunables: by_causality(Causality::Tunable),
+            cells,
         })
     }
 
@@ -531,6 +765,7 @@ impl Descriptor {
         spec: &StructSpec,
         vars: &BTreeMap<&str, usize>,
         dims: &BTreeMap<&str, usize>,
+        cells: &mut usize,
     ) -> Result<ResolvedStruct, DescriptorError> {
         let fail = |s: String| DescriptorError(format!("struct {name}: {s}"));
         let mut seen = BTreeSet::new();
@@ -542,10 +777,18 @@ impl Descriptor {
             }
             let mapped = usize::from(m.variable.is_some())
                 + usize::from(m.dim.is_some())
-                + usize::from(m.builtin.is_some());
+                + usize::from(m.builtin.is_some())
+                + usize::from(m.const_.is_some())
+                + usize::from(m.phase.is_some());
             if mapped > 1 {
                 return Err(fail(format!(
-                    "member {}: at most one of variable, dim, builtin",
+                    "member {}: at most one of variable, dim, builtin, const, phase",
+                    m.name
+                )));
+            }
+            if m.reported && m.dim.is_none() {
+                return Err(fail(format!(
+                    "member {}: `reported` applies to `dim` only",
                     m.name
                 )));
             }
@@ -559,7 +802,7 @@ impl Descriptor {
                     .get(var.as_str())
                     .ok_or_else(|| fail(format!("member {}: unknown variable {var}", m.name)))?;
                 let v = &self.interface.variables[idx];
-                if m.ty.base != Some(v.ty) {
+                if !m.ty.base.is_some_and(|b| carries(b, v.ty)) {
                     return Err(fail(format!(
                         "member {}: C type {} does not match variable {} of type {:?}",
                         m.name, m.ty, var, v.ty
@@ -580,16 +823,28 @@ impl Descriptor {
                 let idx = *dims
                     .get(dim.as_str())
                     .ok_or_else(|| fail(format!("member {}: unknown dimension {dim}", m.name)))?;
-                if m.ty.pointer || !m.ty.is_integer() {
+                if !m.ty.is_integer() {
                     return Err(fail(format!(
-                        "member {}: a dimension length needs a scalar integer type, not {}",
+                        "member {}: a dimension length needs an integer type, not {}",
                         m.name, m.ty
                     )));
                 }
                 let Some(ty) = m.ty.base else {
                     return Err(fail(format!("member {}: void", m.name)));
                 };
-                MemberRole::Dim(idx, ty)
+                match (m.reported, m.ty.pointer) {
+                    (false, false) => MemberRole::Dim(idx, ty),
+                    (false, true) => MemberRole::DimPointer {
+                        dim: idx,
+                        ty,
+                        cell: next_cell(cells),
+                    },
+                    (true, pointer) => MemberRole::Reported {
+                        dim: idx,
+                        ty,
+                        cell: pointer.then(|| next_cell(cells)),
+                    },
+                }
             } else if let Some(builtin) = m.builtin {
                 if m.ty.pointer || m.ty.base != Some(ScalarType::F64) {
                     return Err(fail(format!(
@@ -598,6 +853,13 @@ impl Descriptor {
                     )));
                 }
                 MemberRole::Builtin(builtin)
+            } else if let Some(value) = phased(m.const_, m.phase, m.ty)
+                .map_err(|e| fail(format!("member {}: {e}", m.name)))?
+            {
+                MemberRole::Fixed {
+                    value,
+                    cell: m.ty.pointer.then(|| next_cell(cells)),
+                }
             } else if m.ty.pointer {
                 MemberRole::Pointer(None)
             } else {
@@ -622,6 +884,7 @@ impl Descriptor {
         structs: &BTreeMap<&str, usize>,
         vars: &BTreeMap<&str, usize>,
         dims: &BTreeMap<&str, usize>,
+        cells: &mut usize,
     ) -> Result<ResolvedCall, DescriptorError> {
         let fail = |s: String| DescriptorError(format!("{which} ({}): {s}", call.symbol));
         if call.symbol.is_empty() {
@@ -635,14 +898,19 @@ impl Descriptor {
                 + usize::from(a.value.is_some())
                 + usize::from(a.dim.is_some())
                 + usize::from(a.builtin.is_some())
-                + usize::from(a.handle.is_some());
+                + usize::from(a.handle.is_some())
+                + usize::from(a.const_.is_some())
+                + usize::from(a.phase.is_some());
             if set != 1 {
                 return Err(fail(format!(
-                    "argument {i}: exactly one of struct, array, value, dim, builtin, handle"
+                    "argument {i}: exactly one of struct, array, value, dim, builtin, handle, \
+                     const, phase"
                 )));
             }
-            if a.ty.is_some() && a.dim.is_none() {
-                return Err(fail(format!("argument {i}: `type` applies to `dim` only")));
+            if a.ty.is_some() && a.dim.is_none() && a.const_.is_none() && a.phase.is_none() {
+                return Err(fail(format!(
+                    "argument {i}: `type` applies to `dim`, `const` and `phase` only"
+                )));
             }
             let role = if let Some(s) = &a.struct_ {
                 let idx = *structs
@@ -681,10 +949,7 @@ impl Descriptor {
                 let idx = *dims
                     .get(d.as_str())
                     .ok_or_else(|| fail(format!("argument {i}: unknown dimension {d}")))?;
-                let ty = a.ty.unwrap_or(CType {
-                    base: Some(ScalarType::I32),
-                    pointer: false,
-                });
+                let ty = a.ty.unwrap_or(C_INT);
                 if ty.pointer || !ty.is_integer() {
                     return Err(fail(format!(
                         "argument {i}: a dimension length needs a scalar integer type, not {ty}"
@@ -701,6 +966,19 @@ impl Descriptor {
             } else if let Some(h) = a.handle {
                 ints += 1;
                 ArgRole::Handle(h)
+            } else if let Some(value) = phased(a.const_, a.phase, a.ty.unwrap_or(C_INT))
+                .map_err(|e| fail(format!("argument {i}: {e}")))?
+            {
+                let pointer = a.ty.is_some_and(|t| t.pointer);
+                if !pointer && matches!(value.init.ty, ScalarType::F64 | ScalarType::F32) {
+                    floats += 1;
+                } else {
+                    ints += 1;
+                }
+                ArgRole::Fixed {
+                    value,
+                    cell: pointer.then(|| next_cell(cells)),
+                }
             } else {
                 return Err(fail(format!("argument {i}: empty")));
             };
@@ -795,6 +1073,114 @@ args = [{ value = "u" }, { array = "y" }]
         assert!(d.validate().unwrap_err().0.contains("multiple"));
         let d = Descriptor::parse(&format!("instances = \"multiple\"\n{text}")).unwrap();
         d.validate().unwrap();
+    }
+
+    #[test]
+    fn const_and_phase_values_resolve_to_their_c_type() {
+        let text = MINIMAL.replace(
+            "symbol = \"gain_init\"",
+            "symbol = \"gain_init\"\nargs = [{ const = -3, type = \"int16_t\" }, \
+             { phase = { init = 1, step = 0 }, type = \"int *\" }, { const = 0.5, type = \"double\" }]",
+        );
+        let plan = Descriptor::parse(&text).unwrap().validate().unwrap();
+        let ArgRole::Fixed { value, cell: None } = plan.init.args[0] else {
+            panic!("{:?}", plan.init.args[0]);
+        };
+        assert_eq!(value.init.reg(), (false, u64::from((-3_i32) as u32)));
+        let mut slot = [0_u8; 2];
+        assert!(value.init.write(&mut slot));
+        assert_eq!(i16::from_ne_bytes(slot), -3);
+        assert!(!value.init.write(&mut [0_u8; 4]), "exact width only");
+        let ArgRole::Fixed {
+            value,
+            cell: Some(0),
+        } = plan.init.args[1]
+        else {
+            panic!("{:?}", plan.init.args[1]);
+        };
+        assert_eq!((value.init.bits, value.step.bits), (1, 0));
+        let ArgRole::Fixed { value, cell: None } = plan.init.args[2] else {
+            panic!("{:?}", plan.init.args[2]);
+        };
+        assert_eq!(value.init.reg(), (true, 0.5_f64.to_bits()));
+        assert_eq!(plan.cells, 1);
+        let back = Descriptor::parse(&text).unwrap();
+        assert_eq!(Descriptor::parse(&back.to_toml().unwrap()).unwrap(), back);
+
+        for (bad, why) in [
+            ("{ const = 300, type = \"uint8_t\" }", "fit"),
+            ("{ const = 1.5, type = \"int\" }", "integer"),
+            ("{ const = 2, type = \"bool\" }", "fit"),
+            ("{ const = 1, type = \"void *\" }", "void"),
+            (
+                "{ const = 1, phase = { init = 1, step = 0 } }",
+                "exactly one",
+            ),
+            ("{ value = \"u\", type = \"int\" }", "`type` applies"),
+        ] {
+            let text = MINIMAL.replace(
+                "symbol = \"gain_init\"",
+                &format!("symbol = \"gain_init\"\nargs = [{bad}]"),
+            );
+            let err = Descriptor::parse(&text).unwrap().validate().unwrap_err();
+            assert!(err.0.contains(why), "{bad}: {err}");
+        }
+    }
+
+    #[test]
+    fn members_carry_constants_phases_and_reported_lengths() {
+        let text = MINIMAL
+            .replace(
+                "name = \"gain\"\n",
+                "name = \"gain\"\n[[dimensions]]\nname = \"n\"\n",
+            )
+            .replace(
+                "args = [{ value = \"u\" }, { array = \"y\" }]",
+                "args = [{ struct = \"s\" }]\n[abi.structs.s]\nmembers = [\
+                 { name = \"id\", type = \"int\", const = 4 },\
+                 { name = \"flag\", type = \"int *\", phase = { init = 1, step = 0 } },\
+                 { name = \"n\", type = \"int *\", dim = \"n\" },\
+                 { name = \"n_out\", type = \"int *\", dim = \"n\", reported = true },\
+                 { name = \"n_val\", type = \"long\", dim = \"n\", reported = true },\
+                 { name = \"ok\", type = \"uint8_t *\", variable = \"y\" }]",
+            );
+        // `y` is f64 in MINIMAL; a byte pointer to it is refused, to a bool variable admitted.
+        let err = Descriptor::parse(&text).unwrap().validate().unwrap_err();
+        assert!(err.0.contains("does not match"), "{err}");
+        let text = text.replace(
+            "name = \"y\"\ncausality = \"output\"\ntype = \"f64\"",
+            "name = \"y\"\ncausality = \"output\"\ntype = \"bool\"",
+        );
+        let plan = Descriptor::parse(&text).unwrap().validate().unwrap();
+        let roles = &plan.structs[0].members;
+        assert!(matches!(roles[0], MemberRole::Fixed { cell: None, .. }));
+        assert!(matches!(roles[1], MemberRole::Fixed { cell: Some(0), .. }));
+        assert!(matches!(roles[2], MemberRole::DimPointer { cell: 1, .. }));
+        assert!(matches!(
+            roles[3],
+            MemberRole::Reported {
+                cell: Some(2),
+                ty: ScalarType::I32,
+                ..
+            }
+        ));
+        assert!(matches!(
+            roles[4],
+            MemberRole::Reported {
+                cell: None,
+                ty: ScalarType::I64,
+                ..
+            }
+        ));
+        assert!(matches!(roles[5], MemberRole::Pointer(Some(1))));
+        assert_eq!(plan.cells, 3);
+
+        let refused = text.replace(
+            "{ name = \"id\", type = \"int\", const = 4 }",
+            "{ name = \"id\", type = \"int\", const = 4, reported = true }",
+        );
+        let err = Descriptor::parse(&refused).unwrap().validate().unwrap_err();
+        assert!(err.0.contains("`reported` applies"), "{err}");
     }
 
     #[test]

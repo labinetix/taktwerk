@@ -18,7 +18,8 @@ use taktwerk_core::model::{Causality, Dimension, Instances, ModelInterface, Vari
 use taktwerk_core::value::{Dim, Layout, ScalarType};
 
 use crate::descriptor::{
-    Abi, Arg, Builtin, CType, Call, Descriptor, Handle, Member, Returns, StructSpec,
+    Abi, Arg, Builtin, CType, Call, Descriptor, Handle, Member, Number, PhaseValues, Returns,
+    StructSpec,
 };
 
 /// A header the importer cannot read at all.
@@ -655,11 +656,31 @@ impl Proposal {
     }
 }
 
+/// What the caller knows about a header that its text does not say.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct ImportOptions {
+    /// One function that serves as both init and step (a single entry point); which call it is
+    /// told by a `phase` member or argument.
+    pub entry: Option<String>,
+    /// `(parameter, struct)`: an opaque `char *` or `void *` parameter that is really a pointer
+    /// to this typedef struct of the header.
+    pub arg_structs: Vec<(String, String)>,
+}
+
 /// Read and parse `path`, then [`propose`] with the file stem as model name.
 ///
 /// # Errors
 /// The file cannot be read or parsed, or declares no usable function.
 pub fn import_header(path: &Path) -> Result<Proposal, ImportError> {
+    import_header_with(path, &ImportOptions::default())
+}
+
+/// [`import_header`] with [`ImportOptions`].
+///
+/// # Errors
+/// As [`import_header`], plus an entry, parameter or struct the options name but the header
+/// does not declare.
+pub fn import_header_with(path: &Path, options: &ImportOptions) -> Result<Proposal, ImportError> {
     let file = path.display().to_string();
     let text = std::fs::read_to_string(path).map_err(|e| ImportError(format!("{file}: {e}")))?;
     let header = parse_header(&text, &file)?;
@@ -667,7 +688,7 @@ pub fn import_header(path: &Path) -> Result<Proposal, ImportError> {
         .file_stem()
         .map(|s| s.to_string_lossy().into_owned())
         .unwrap_or_else(|| "model".to_owned());
-    propose(&header, &name)
+    propose_with(&header, &name, options)
 }
 
 /// Guess roles, dimensions and lengths for a parsed header.
@@ -675,11 +696,40 @@ pub fn import_header(path: &Path) -> Result<Proposal, ImportError> {
 /// # Errors
 /// No function could serve as the step.
 pub fn propose(header: &Header, name: &str) -> Result<Proposal, ImportError> {
+    propose_with(header, name, &ImportOptions::default())
+}
+
+/// [`propose`] with [`ImportOptions`].
+///
+/// # Errors
+/// No function could serve as the step, or the options name something the header lacks.
+pub fn propose_with(
+    header: &Header,
+    name: &str,
+    options: &ImportOptions,
+) -> Result<Proposal, ImportError> {
     let mut b = Builder {
         header: Some(header),
         notes: header.notes.clone(),
         ..Builder::default()
     };
+    for (param, st) in &options.arg_structs {
+        if !header.structs.iter().any(|s| &s.name == st) {
+            return Err(ImportError(format!(
+                "parameter {param}: struct {st} is not declared in the header"
+            )));
+        }
+        b.arg_structs.insert(param.clone(), st.clone());
+        let l = param.to_lowercase();
+        if l.contains("out") {
+            b.hints.insert(st.clone(), Causality::Output);
+        } else if l.contains("in") {
+            b.hints.insert(st.clone(), Causality::Input);
+        }
+    }
+    if let Some(entry) = &options.entry {
+        return propose_single_entry(b, header, name, entry);
+    }
     let usable: Vec<&Function> = header.functions.iter().filter(|f| b.usable(f)).collect();
     let find = |keys: &[&str], taken: &[&str]| -> Option<&Function> {
         usable.iter().copied().find(|f| {
@@ -736,53 +786,132 @@ pub fn propose(header: &Header, name: &str) -> Result<Proposal, ImportError> {
         b.notes.push(format!("terminate = {} (by name)", f.name));
         b.call(f)
     });
-    let instances = if b.has_handle {
-        b.notes
-            .push("a void * handle was found: instances = multiple".to_owned());
-        Instances::Multiple
-    } else {
-        b.notes
-            .push("no handle: instances = single (state assumed in globals)".to_owned());
-        Instances::Single
+    Ok(b.finish(name, init_call, step_call, terminate_call))
+}
+
+/// The single-entry proposal: one function for init and step.
+fn propose_single_entry(
+    mut b: Builder<'_>,
+    header: &Header,
+    name: &str,
+    entry: &str,
+) -> Result<Proposal, ImportError> {
+    let Some(f) = header.functions.iter().find(|f| f.name == entry) else {
+        return Err(ImportError(format!(
+            "entry {entry} is not declared in the header"
+        )));
     };
-    if !b.dims.is_empty() {
-        b.notes.push(format!(
-            "dimensions guessed from integer names: {}; min = 1 assumed",
-            b.dims.keys().cloned().collect::<Vec<_>>().join(", ")
-        ));
+    for param in b.arg_structs.keys() {
+        if !f.params.iter().any(|p| p.name.as_deref() == Some(param)) {
+            return Err(ImportError(format!("{entry} has no parameter {param}")));
+        }
     }
-    b.notes
-        .push("matrices: set two shape entries and `layout` by hand".to_owned());
-    let descriptor = Descriptor {
-        interface: ModelInterface {
-            name: name.to_owned(),
-            dimensions: b
-                .dims
-                .keys()
-                .map(|n| Dimension {
-                    name: n.clone(),
-                    min: Some(1),
-                    max: None,
-                    default: None,
-                })
-                .collect(),
-            variables: b.variables.clone(),
-            instances,
-        },
-        abi: Abi {
-            confirmed: false,
-            library: None,
-            ok_codes: vec![0],
-            init: init_call,
-            step: step_call,
-            terminate: terminate_call,
-            structs: b.structs.clone(),
-        },
-    };
-    Ok(Proposal {
-        descriptor,
-        notes: b.notes,
-    })
+    if !b.usable(f) {
+        return Err(ImportError(format!(
+            "entry {entry} cannot be called by the adapter (see notes: {})",
+            b.notes.join("; ")
+        )));
+    }
+    b.single_entry = true;
+    // Lengths the library reports in an output struct are dimensions before any member names
+    // its length after them.
+    let mapped: Vec<String> = b.arg_structs.values().cloned().collect();
+    for st in &mapped {
+        if b.hint(st) != Some(Causality::Output) {
+            continue;
+        }
+        if let Some(s) = header.structs.iter().find(|s| &s.name == st) {
+            for m in &s.members {
+                if let (Some(n), ParsedType::Scalar(t)) = (&m.name, &m.ty) {
+                    if t.is_integer() && !looks_like_flag(n) {
+                        if let Some(dim) = reported_dim(n) {
+                            b.dims.entry(dim).or_insert(*t);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    b.notes.push(format!(
+        "init = step = {entry} (single entry point): a phase member or argument must tell the \
+         library which call runs"
+    ));
+    let call = b.call(f);
+    if !call.args.iter().any(|a| a.phase.is_some())
+        && !b
+            .structs
+            .values()
+            .any(|s| s.members.iter().any(|m| m.phase.is_some()))
+    {
+        b.notes.push(
+            "no flag-like member or argument found: add a `phase = { init = …, step = … }`"
+                .to_owned(),
+        );
+    }
+    b.notes.push(
+        "no terminate with a single entry point; add one by hand if the library has it".to_owned(),
+    );
+    Ok(b.finish(name, call.clone(), call, None))
+}
+
+impl Builder<'_> {
+    /// Assemble the unconfirmed descriptor.
+    fn finish(
+        self,
+        name: &str,
+        init_call: Call,
+        step_call: Call,
+        terminate_call: Option<Call>,
+    ) -> Proposal {
+        let mut b = self;
+        let instances = if b.has_handle {
+            b.notes
+                .push("a void * handle was found: instances = multiple".to_owned());
+            Instances::Multiple
+        } else {
+            b.notes
+                .push("no handle: instances = single (state assumed in globals)".to_owned());
+            Instances::Single
+        };
+        if !b.dims.is_empty() {
+            b.notes.push(format!(
+                "dimensions guessed from integer names: {}; min = 1 assumed",
+                b.dims.keys().cloned().collect::<Vec<_>>().join(", ")
+            ));
+        }
+        b.notes
+            .push("matrices: set two shape entries and `layout` by hand".to_owned());
+        let descriptor = Descriptor {
+            interface: ModelInterface {
+                name: name.to_owned(),
+                dimensions: b
+                    .dims
+                    .keys()
+                    .map(|n| Dimension {
+                        name: n.clone(),
+                        min: Some(1),
+                        max: None,
+                        default: None,
+                    })
+                    .collect(),
+                variables: b.variables.clone(),
+                instances,
+            },
+            abi: Abi {
+                confirmed: false,
+                library: None,
+                ok_codes: vec![0],
+                init: init_call,
+                step: step_call,
+                terminate: terminate_call,
+                structs: b.structs.clone(),
+            },
+        };
+        Proposal {
+            descriptor,
+            notes: b.notes,
+        }
+    }
 }
 
 const TERMINATE_KEYS: &[&str] = &[
@@ -804,6 +933,12 @@ struct Builder<'h> {
     dims: BTreeMap<String, CType>,
     structs: BTreeMap<String, StructSpec>,
     has_handle: bool,
+    /// Parameter name → struct, from [`ImportOptions::arg_structs`].
+    arg_structs: BTreeMap<String, String>,
+    /// Struct → causality hint from the parameter that carries it.
+    hints: BTreeMap<String, Causality>,
+    /// Proposing for a single entry point.
+    single_entry: bool,
 }
 
 impl<'h> Builder<'h> {
@@ -958,6 +1093,48 @@ impl<'h> Builder<'h> {
         for (i, p) in f.params.iter().enumerate() {
             let pname = p.name.clone().unwrap_or_else(|| format!("arg{i}"));
             let context = f.name.clone();
+            if let Some(st) = self.arg_structs.get(&pname).cloned() {
+                self.notes
+                    .push(format!("{context}: {pname} carries struct {st} (as told)"));
+                self.struct_spec(&st);
+                args.push(Arg {
+                    struct_: Some(st),
+                    ..Arg::default()
+                });
+                continue;
+            }
+            if let ParsedType::Scalar(
+                t @ CType {
+                    base: Some(_),
+                    pointer: false,
+                },
+            ) = &p.ty
+            {
+                if t.is_integer() && looks_like_flag(&pname) {
+                    self.notes.push(format!(
+                        "{context}: {pname} looks like an init flag: phase = {{ init = 1, step = 0 }} (guessed)"
+                    ));
+                    args.push(Arg {
+                        phase: Some(INIT_FLAG),
+                        ty: Some(*t),
+                        ..Arg::default()
+                    });
+                    continue;
+                }
+                if self.single_entry && i == 0 && t.is_integer() && !self.dims.contains_key(&pname)
+                {
+                    self.notes.push(format!(
+                        "{context}: {pname} is proposed as a constant: TODO set the value the \
+                         library expects (0 is a placeholder)"
+                    ));
+                    args.push(Arg {
+                        const_: Some(Number::Int(0)),
+                        ty: Some(*t),
+                        ..Arg::default()
+                    });
+                    continue;
+                }
+            }
             let arg = match &p.ty {
                 ParsedType::VoidPtrPtr => {
                     self.has_handle = true;
@@ -1052,6 +1229,18 @@ impl<'h> Builder<'h> {
         }
     }
 
+    /// Causality hint for a struct: by its name, else by the parameter that carries it.
+    fn hint(&self, name: &str) -> Option<Causality> {
+        let lower = name.to_lowercase();
+        if lower.contains("out") {
+            Some(Causality::Output)
+        } else if lower.contains("in") {
+            Some(Causality::Input)
+        } else {
+            self.hints.get(name).copied()
+        }
+    }
+
     fn struct_spec(&mut self, name: &str) {
         if self.structs.contains_key(name) {
             return;
@@ -1072,14 +1261,7 @@ impl<'h> Builder<'h> {
         };
         let st = st.clone();
         self.register_dims(&st.members);
-        let lower = name.to_lowercase();
-        let struct_hint = if lower.contains("out") {
-            Some(Causality::Output)
-        } else if lower.contains("in") {
-            Some(Causality::Input)
-        } else {
-            None
-        };
+        let struct_hint = self.hint(name);
         let mut members = Vec::with_capacity(st.members.len());
         for (i, m) in st.members.iter().enumerate() {
             let mname = m.name.clone().unwrap_or_default();
@@ -1094,10 +1276,55 @@ impl<'h> Builder<'h> {
                     variable: None,
                     dim: None,
                     builtin: None,
+                    const_: None,
+                    phase: None,
+                    reported: false,
                 });
                 continue;
             };
+            if t.is_integer() && looks_like_flag(&mname) {
+                self.notes.push(format!(
+                    "struct {name}: {mname} looks like an init flag: phase = {{ init = 1, step = 0 }} (guessed)"
+                ));
+                members.push(Member {
+                    name: mname,
+                    ty: *t,
+                    variable: None,
+                    dim: None,
+                    builtin: None,
+                    const_: None,
+                    phase: Some(INIT_FLAG),
+                    reported: false,
+                });
+                continue;
+            }
+            if t.pointer && t.is_integer() && struct_hint == Some(Causality::Output) {
+                if let Some(dim) = reported_dim(&mname) {
+                    self.notes.push(format!(
+                        "struct {name}: {mname} looks like a length the library reports: \
+                         dim = {dim}, reported = true (guessed)"
+                    ));
+                    self.dims.entry(dim.clone()).or_insert(*t);
+                    members.push(Member {
+                        name: mname,
+                        ty: *t,
+                        variable: None,
+                        dim: Some(dim),
+                        builtin: None,
+                        const_: None,
+                        phase: None,
+                        reported: true,
+                    });
+                    continue;
+                }
+            }
             let member = if t.pointer {
+                if base == ScalarType::U8 {
+                    self.notes.push(format!(
+                        "struct {name}: {mname} is a byte buffer; if it carries text, give its \
+                         variable a literal shape = [capacity] (bytes, NUL included)"
+                    ));
+                }
                 let shape = self.guess_len(&st.members, i, &mname, name);
                 let causality = if m.is_const {
                     Causality::Input
@@ -1111,6 +1338,12 @@ impl<'h> Builder<'h> {
                         }
                     })
                 };
+                if shape.is_empty() && !m.is_const && causality == Causality::Input {
+                    self.notes.push(format!(
+                        "struct {name}: {mname} points at one value; if the library writes it \
+                         back, make its variable an output"
+                    ));
+                }
                 let var = self.variable(&mname, base, shape, causality, name);
                 Member {
                     name: mname,
@@ -1118,6 +1351,9 @@ impl<'h> Builder<'h> {
                     variable: Some(var),
                     dim: None,
                     builtin: None,
+                    const_: None,
+                    phase: None,
+                    reported: false,
                 }
             } else if self.dims.contains_key(&mname) {
                 Member {
@@ -1126,6 +1362,9 @@ impl<'h> Builder<'h> {
                     variable: None,
                     dim: Some(mname),
                     builtin: None,
+                    const_: None,
+                    phase: None,
+                    reported: false,
                 }
             } else if let Some(builtin) = Self::builtin_of(&mname, *t) {
                 self.notes
@@ -1136,6 +1375,9 @@ impl<'h> Builder<'h> {
                     variable: None,
                     dim: None,
                     builtin: Some(builtin),
+                    const_: None,
+                    phase: None,
+                    reported: false,
                 }
             } else {
                 let causality = struct_hint.unwrap_or(Causality::Parameter);
@@ -1149,11 +1391,46 @@ impl<'h> Builder<'h> {
                     variable: Some(var),
                     dim: None,
                     builtin: None,
+                    const_: None,
+                    phase: None,
+                    reported: false,
                 }
             };
             members.push(member);
         }
         self.structs.insert(name.to_owned(), StructSpec { members });
+    }
+}
+
+/// `phase = { init = 1, step = 0 }`, proposed for flag-like integers.
+const INIT_FLAG: PhaseValues = PhaseValues {
+    init: Number::Int(1),
+    step: Number::Int(0),
+};
+
+/// Whether an integer's name reads as an init/step flag: `flag`, `init_flag`, `first_call`, …
+fn looks_like_flag(name: &str) -> bool {
+    let l = name.to_lowercase();
+    l.contains("flag")
+        || l == "init"
+        || l == "first"
+        || l.ends_with("_ini")
+        || l.ends_with("_init")
+        || l.starts_with("is_init")
+        || l.starts_with("first_")
+}
+
+/// The dimension a size-like integer names: `nu` for `dim_nu` or `size_nu`, the whole name for
+/// `nx` or `x_len`, `None` when it does not read as a length.
+fn reported_dim(name: &str) -> Option<String> {
+    let tail = name.rsplit('_').next().unwrap_or(name);
+    let generic = ["len", "size", "count", "num", "dim", "n"];
+    if tail != name && looks_like_dim(tail) && !generic.contains(&tail.to_lowercase().as_str()) {
+        Some(tail.to_owned())
+    } else if looks_like_dim(name) {
+        Some(name.to_owned())
+    } else {
+        None
     }
 }
 

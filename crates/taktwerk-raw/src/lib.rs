@@ -1,7 +1,7 @@
 //! Raw C library model adapter for taktwerk: header import, descriptors, C layout.
 //!
-//! A raw model is a shared library with an init, a step and optionally a terminate function,
-//! described by a descriptor the engine reads. The engine owns every buffer, lays structs out
+//! A raw model is a shared library with an init, a step and optionally a terminate function (or
+//! one function serving as both init and step), described by a descriptor the engine reads. The engine owns every buffer, lays structs out
 //! by C's rules for the running target, fills pointers once per call and copies inputs in and
 //! outputs out around each step.
 //!
@@ -38,15 +38,47 @@
 //! | `{ builtin = "time" }`        | `double`    | the time the call advances from                 |
 //! | `{ handle = "out" }`          | `void **`   | init only: the library stores its handle        |
 //! | `{ handle = "in" }`           | `void *`    | the stored handle                               |
+//! | `{ const = 7, type = "int" }` | `T`         | the same number on every call                   |
+//! | `{ phase = { init = 1, step = 0 }, type = "int" }` | `T` | one number for init, another for step and terminate |
 //!
-//! A struct in `[abi.structs.<s>]` lists its members with their C type in declaration order.
-//! A pointer member mapped to a `variable` gets the buffer's address, a scalar member mapped
-//! to a `variable` carries the value (inputs, parameters and tunables are written before each
-//! call, outputs read after it), a scalar integer member mapped to a `dim` carries the bound
-//! length, a `double` member mapped to a `builtin` the step size or time. Unmapped pointer
+//! `type` (default `int`) applies to `dim`, `const` and `phase`; written as a pointer
+//! (`int *`), the argument is the address of engine-owned storage holding the value.
+//! `init` and `step` may name the same symbol: a library with a single entry point tells the
+//! two calls apart by a `phase` argument or member.
+//!
+//! A struct in `[abi.structs.<s>]` lists its members with their C type in declaration order;
+//! each member maps to at most one of
+//!
+//! | member (`name`, `type` omitted)          | C member     | holds                                     |
+//! |------------------------------------------|--------------|-------------------------------------------|
+//! | `{ variable = "v" }`                     | `T *`        | the address of `v`'s buffer               |
+//! | `{ variable = "v" }`                     | `T`          | scalar `v` (see below)                    |
+//! | `{ dim = "n" }`                          | `int`/`int *`| the bound length of `n`                   |
+//! | `{ dim = "n", reported = true }`         | `int`/`int *`| a length the library writes (see below)   |
+//! | `{ builtin = "step_size" }`              | `double`     | the step size or time                     |
+//! | `{ const = 9 }`                          | `T`/`T *`    | the same number on every call             |
+//! | `{ phase = { init = 1, step = 0 } }`     | `T`/`T *`    | one number for init, another afterwards   |
+//!
+//! A scalar member mapped to a `variable` carries the value: inputs, parameters and tunables
+//! are written before each call, outputs read after it. A pointer member may point at a
+//! scalar variable of any causality; one the library writes back (a counter in an input
+//! struct) is mapped to an output variable, whose buffer the engine never overwrites. A pointer
+//! member carrying a `dim`, `const` or `phase` points at engine-owned storage. Unmapped pointer
 //! members are `NULL`, unmapped scalars zero. Admitted C types are `double`, `float`, `bool`,
 //! `char` and the fixed-width and plain integer types at their 64-bit Linux widths, each
 //! optionally `const` and optionally followed by one `*`.
+//!
+//! A `reported` length is one the library knows and the engine does not have to tell it: it is
+//! zeroed before init, then compared with the bound length after init and after every step; a
+//! difference fails the call with both values. The check runs after the call returned, so it
+//! catches a library loaded with the wrong sizes but cannot undo a write it already made beyond
+//! a buffer bound too small.
+//!
+//! Text travels as bytes: a `char *` member maps to a `u8` variable with a literal shape, its
+//! capacity with the terminating NUL included (`shape = [32]`). The caller supplies text through
+//! a parameter or input, the library writes it into an output. A `uint8_t` or `uint8_t *`
+//! member may also map to a `bool` variable: the engine keeps the bytes and reads any non-zero
+//! byte as true.
 //!
 //! Lengths are never inferred: `abi.confirmed = true` states that the model developer checked
 //! which pointer takes which dimension. A descriptor without it is refused at load. A `single`
@@ -153,12 +185,96 @@
 //! `init.args = [{ handle = "out" }, { dim = "n" }, { builtin = "step_size" }]` with
 //! `step.args = [{ handle = "in" }, { array = "sp" }, { array = "pv" }, { array = "out" }]`.
 //!
+//! # Single entry point
+//!
+//! A common legacy style exports one function for every call, taking an integer id and two
+//! opaque pointers the library casts to its input and output structs. Which call runs is a
+//! flag the caller sets, and the library reports its own sizes at init:
+//!
+//! ```c
+//! typedef struct { int32_t *first; int32_t variant; double *k; double *u; int32_t *count; } io_in;
+//! typedef struct { double *y; char *label; int32_t *n_u; int32_t *n_y; } io_out;
+//! int model_call(int id, char *in, char *out);  /* 0 on success */
+//! ```
+//!
+//! ```toml
+//! name = "single-entry"
+//!
+//! [[dimensions]]
+//! name = "nu"
+//!
+//! [[dimensions]]
+//! name = "ny"
+//!
+//! [[variables]]
+//! name = "k"
+//! causality = "tunable"
+//! type = "f64"
+//!
+//! [[variables]]
+//! name = "u"
+//! causality = "input"
+//! type = "f64"
+//! shape = ["nu"]
+//!
+//! [[variables]]
+//! name = "count"
+//! causality = "output"
+//! type = "i32"
+//!
+//! [[variables]]
+//! name = "y"
+//! causality = "output"
+//! type = "f64"
+//! shape = ["ny"]
+//!
+//! [[variables]]
+//! name = "label"
+//! causality = "output"
+//! type = "u8"
+//! shape = [32]
+//!
+//! [abi]
+//! confirmed = true
+//!
+//! [abi.init]
+//! symbol = "model_call"
+//! args = [{ const = 7, type = "int" }, { struct = "io_in" }, { struct = "io_out" }]
+//!
+//! [abi.step]
+//! symbol = "model_call"
+//! args = [{ const = 7, type = "int" }, { struct = "io_in" }, { struct = "io_out" }]
+//!
+//! [abi.structs.io_in]
+//! members = [
+//!   { name = "first", type = "int32_t *", phase = { init = 1, step = 0 } },
+//!   { name = "variant", type = "int32_t", const = 1 },
+//!   { name = "k", type = "double *", variable = "k" },
+//!   { name = "u", type = "double *", variable = "u" },
+//!   { name = "count", type = "int32_t *", variable = "count" },
+//! ]
+//!
+//! [abi.structs.io_out]
+//! members = [
+//!   { name = "y", type = "double *", variable = "y" },
+//!   { name = "label", type = "char *", variable = "label" },
+//!   { name = "n_u", type = "int32_t *", dim = "nu", reported = true },
+//!   { name = "n_y", type = "int32_t *", dim = "ny", reported = true },
+//! ]
+//! ```
+//!
 //! # Header import
 //!
 //! [`import_header`] parses a C header (flat `typedef struct` blocks and function prototypes
 //! over the admitted types) and proposes a descriptor with `confirmed = false`: function roles,
 //! dimension members and pointer→length relations are guessed by name and listed in the
 //! proposal's notes. The developer edits the proposal and sets `confirmed = true`.
+//!
+//! [`import_header_with`] takes what the header cannot say: [`ImportOptions::entry`] names a
+//! single entry point and [`ImportOptions::arg_structs`] which struct each opaque `char *` or
+//! `void *` parameter carries. The proposal then also guesses a flag-like integer as a
+//! `phase`, size-like integer pointers in an output struct as `reported` lengths, and a leading
+//! integer argument as a `const` whose value is left to the developer.
 //!
 //! # Calling convention
 //!
@@ -184,28 +300,43 @@ mod ffi;
 
 pub use adapter::{RawModel, arch_dir};
 pub use descriptor::{DESCRIPTOR_FILE, Descriptor, DescriptorError, Plan};
-pub use import::{ImportError, Proposal, import_header, parse_header, propose};
+pub use import::{
+    ImportError, ImportOptions, Proposal, import_header, import_header_with, parse_header, propose,
+    propose_with,
+};
 
 #[cfg(test)]
 mod doc_example {
     use super::*;
 
-    /// The example in the crate docs stays a valid, confirmed descriptor.
-    #[test]
-    fn the_documented_example_validates() {
+    /// The `n`th TOML example in the crate docs.
+    fn example(n: usize) -> Descriptor {
         let source = include_str!("lib.rs");
-        let start = source.find("//! ```toml").unwrap();
-        let rest = &source[start + "//! ```toml".len()..];
+        let mut rest = source;
+        for _ in 0..=n {
+            let start = rest.find("//! ```toml").unwrap();
+            rest = &rest[start + "//! ```toml".len()..];
+        }
         let end = rest.find("//! ```").unwrap();
         let toml: String = rest[..end]
             .lines()
             .map(|l| l.trim_start_matches("//!").trim_start_matches(' '))
             .collect::<Vec<_>>()
             .join("\n");
-        let d = Descriptor::parse(&toml).unwrap();
-        let plan = d.validate().unwrap();
+        Descriptor::parse(&toml).unwrap()
+    }
+
+    /// The examples in the crate docs stay valid, confirmed descriptors.
+    #[test]
+    fn the_documented_examples_validate() {
+        let plan = example(0).validate().unwrap();
         assert_eq!(plan.structs.len(), 2);
         assert_eq!(plan.structs[1].layout.size(), 40, "ss_params");
         assert_eq!(plan.structs[0].layout.size(), 24, "ss_io");
+
+        let single = example(1);
+        assert_eq!(single.abi.init, single.abi.step);
+        let plan = single.validate().unwrap();
+        assert_eq!(plan.cells, 3, "first, n_u, n_y");
     }
 }
