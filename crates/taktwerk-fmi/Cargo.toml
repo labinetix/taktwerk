@@ -1,0 +1,17 @@
+[package]
+name = "taktwerk-fmi"
+description = "FMI 2 and FMI 3 co-simulation model adapter for taktwerk"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+taktwerk-core.workspace = true
+
+[lints]
+workspace = true

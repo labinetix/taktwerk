@@ -1,0 +1,21 @@
+[package]
+name = "taktwerk"
+description = "Fixed-step model execution engine for Linux with its own OPC UA server"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+taktwerk-core.workspace = true
+taktwerk-raw.workspace = true
+taktwerk-fmi.workspace = true
+taktwerk-opcua.workspace = true
+tokio.workspace = true
+
+[lints]
+workspace = true

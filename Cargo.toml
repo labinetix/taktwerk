@@ -1,0 +1,33 @@
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/labinetix/taktwerk"
+homepage = "https://github.com/labinetix/taktwerk"
+keywords = ["fmi", "opc-ua", "real-time", "plc", "control"]
+categories = ["science", "simulation"]
+
+[workspace.dependencies]
+taktwerk-core = { path = "crates/taktwerk-core", version = "0.1.0" }
+taktwerk-raw = { path = "crates/taktwerk-raw", version = "0.1.0" }
+taktwerk-fmi = { path = "crates/taktwerk-fmi", version = "0.1.0" }
+taktwerk-opcua = { path = "crates/taktwerk-opcua", version = "0.1.0" }
+serde = { version = "1", features = ["derive"] }
+thiserror = "2"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "signal"] }
+toml = "0.8"
+tracing = "0.1"
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+missing_docs = "warn"
+
+[workspace.lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"

@@ -1,7 +1,7 @@
 # Design
 
 taktwerk runs compiled models at a fixed step on Linux, beside or on a PLC, and exchanges their
-signals over OPC UA. Nothing is implemented yet; this file records the decisions the code follows.
+signals over OPC UA.
 
 ## Scope
 
@@ -21,6 +21,8 @@ signals over OPC UA. Nothing is implemented yet; this file records the decisions
 - **Several models per engine.** Each period is an integer multiple of the base tick; models run
   in declared order and exchange data only through the image. An overrun delays the models after
   it in that tick and is counted.
+- **Signals:** an instance's unmapped variable `v` becomes signal `<instance>.v`; an input mapped
+  to another instance's output wires the two. Values live in typed buffers sized at init.
 
 ## Models and instances
 
@@ -51,6 +53,9 @@ signals over OPC UA. Nothing is implemented yet; this file records the decisions
 
 - **Models run in-process.** taktwerk publishes a heartbeat and a status; whoever consumes the
   outputs, typically the PLC, owns the safe state once the heartbeat stops. No process isolation.
+- **The heartbeat advances only on a cycle whose outputs were published.** A stale input skips the
+  step and the publish and sets the status to faulted until inputs are fresh again; a model error
+  stops the engine (fail-stop, restart by the service manager).
 
 ## I/O
 
@@ -75,9 +80,14 @@ signals over OPC UA. Nothing is implemented yet; this file records the decisions
 - The code starts from the labinetix OPC engine, copied with fresh history. labinetix keeps its
   engine until taktwerk runs its plants on hardware, then deletes it.
 
+## Crates
+
+- `taktwerk-core`: values, process image, project file, model and connector contracts, scheduler.
+- `taktwerk-raw`, `taktwerk-fmi`: the model adapters. `taktwerk-opcua`: server and client.
+- `taktwerk`: the binary (CLI, TUI); it wires adapters and connectors by `kind`.
+
 ## Open
 
-- The crate split.
-- Whether labinetix plants reach taktwerk as a descriptor or as an FMU; parity with today's
-  enveloped run is proven once on hardware.
+- labinetix plants most likely reach taktwerk as FMUs; parity with today's enveloped run is proven
+  once on hardware.
 - The web UI stack.

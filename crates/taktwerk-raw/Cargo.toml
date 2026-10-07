@@ -1,0 +1,17 @@
+[package]
+name = "taktwerk-raw"
+description = "Raw C library model adapter for taktwerk: header import, descriptors, C layout"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+taktwerk-core.workspace = true
+
+[lints]
+workspace = true
