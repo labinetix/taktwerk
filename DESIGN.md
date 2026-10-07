@@ -46,6 +46,15 @@ signals over OPC UA.
 - **A raw descriptor declares `instances = "single" | "multiple"`.** A second instance of a
   single-instance library loads a private copy of it, since one path shares its globals.
 - **Matrices declare their layout,** row- or column-major.
+- **New models follow one convention.** FMI 3 is the recommended model format. Hand-written C
+  follows the recommended shape, which the importer reads without confirmation:
+  `<m>_init(void **h, const <m>_dims *, const <m>_params *, double step_size)`,
+  `<m>_step(void *h, double time, const <m>_inputs *, const <m>_tunables *, <m>_outputs *)`,
+  `<m>_terminate(void *h)`; `int` return, `0` is success; `<m>_dims` holds one `int` per
+  dimension; every array member carries its shape in a trailing comment (`/* [nx][nx] */`),
+  row-major. Other C interfaces are hosted through a hand-confirmed descriptor.
+- **Tunables start at the model's value.** After init, a tunable no connector has written is
+  seeded in the image from the model, so a write to one tunable never zeroes another.
 - **The engine knows no producer.** A toolchain that wants its models run (labinetix among them)
   emits a model package or an FMU.
 
@@ -65,6 +74,11 @@ signals over OPC UA.
   configured per project.
 - **Connectors:** the OPC UA client (to a PLC's server) and the own server. Others (Modbus TCP,
   MQTT) come later behind the same connector trait.
+
+## Documentation
+
+- **A user and developer guide** (mdBook) is published to GitHub Pages at
+  `labinetix.github.io/taktwerk` from `docs/`; it holds the conventions a model must follow.
 
 ## Configuration and surfaces
 
