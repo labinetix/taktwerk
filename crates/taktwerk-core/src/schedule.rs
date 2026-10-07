@@ -255,6 +255,7 @@ fn run(
         .and_then(|()| cycle.init(instant_of(clock.now())));
     if let Err(e) = prepared {
         cycle.terminate(Status::Stopped);
+        cycle.publish_final(instant_of(clock.now()));
         let _ = ready.send(Err(e));
         return Err(EngineError::Init("the engine did not start".into()));
     }
@@ -282,7 +283,7 @@ fn run(
         cycle.overruns = cycle.overruns.saturating_add(u64::from(missed));
     }
     cycle.terminate(Status::Stopped);
-    let _ = cycle.store_system(instant_of(clock.now()));
+    cycle.publish_final(instant_of(clock.now()));
     let cycles = cycle.tick;
     let summary = RunSummary {
         cycles,
@@ -545,7 +546,7 @@ impl Cycle {
             if let Err(source) = slot.instance.step(time, &mut slot.io) {
                 let instance = slot.id.clone();
                 self.terminate(Status::Stopped);
-                let _ = self.store_system(now);
+                self.publish_final(now);
                 return Err(EngineError::Model { instance, source });
             }
             slot.io.tunables_changed = false;
@@ -580,6 +581,13 @@ impl Cycle {
         }
         self.image.store(sys.status, &self.i32_buf, now)?;
         Ok(())
+    }
+
+    /// Store the system signals after the run ended and publish them, so connectors show the
+    /// final status. No allocation.
+    fn publish_final(&mut self, now: Instant) {
+        let _ = self.store_system(now);
+        self.image.publish(self.tick);
     }
 
     /// Terminate every instance once and set `status`.
@@ -1083,6 +1091,7 @@ mod tests {
             FakeSys::default(),
         )
         .unwrap();
+        let mut published = handle.published();
         let summary = engine.join().unwrap();
         assert_eq!(summary.cycles, 10);
         assert_eq!(summary.published, 10);
@@ -1093,6 +1102,8 @@ mod tests {
             .read(handle.layout().id("tw.status").unwrap(), &mut b)
             .unwrap();
         assert_eq!(b, Buffer::I32(vec![Status::Stopped as i32]));
+        // The final status was published, not only stored: the last tick published 9.
+        assert_eq!(*published.borrow_and_update(), 10);
         assert_eq!(
             log.lock()
                 .unwrap()

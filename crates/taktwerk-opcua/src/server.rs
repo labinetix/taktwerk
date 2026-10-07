@@ -461,6 +461,13 @@ impl Connector for OpcUaServer {
             let mut published = image.published();
             let result = loop {
                 if *shutdown.borrow() {
+                    // The engine stored its final status before signalling shutdown.
+                    refresh(
+                        &p.handle,
+                        &p.manager,
+                        &image,
+                        p.readable.iter_mut().chain(p.writable.iter_mut()),
+                    );
                     break Ok(());
                 }
                 tokio::select! {
