@@ -11,7 +11,12 @@ keywords.workspace = true
 categories.workspace = true
 
 [dependencies]
+libloading = "0.8"
+roxmltree = "0.21"
 taktwerk-core.workspace = true
+tempfile = "3"
+tracing.workspace = true
+zip = { version = "7.2", default-features = false, features = ["deflate-flate2-zlib-rs"] }
 
 [lints]
 workspace = true
