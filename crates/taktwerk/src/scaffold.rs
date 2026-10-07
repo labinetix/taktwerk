@@ -70,6 +70,10 @@ pub fn relative(target: &Path, base: &Path) -> PathBuf {
     for c in &t_clean[common..] {
         out.push(c.as_os_str());
     }
+    if out.as_os_str().is_empty() {
+        // The model is the base directory itself (`taktwerk new . --kind raw`).
+        out.push(".");
+    }
     out
 }
 
@@ -285,6 +289,11 @@ mod tests {
             Path::new("models/m.fmu")
         );
         assert_eq!(relative(Path::new("m"), Path::new("../x")), Path::new("m"));
+        assert_eq!(
+            relative(Path::new("/a/b"), Path::new("/a/b")),
+            Path::new(".")
+        );
+        assert_eq!(relative(Path::new("."), Path::new("")), Path::new("."));
     }
 
     #[tokio::test]
