@@ -1,0 +1,27 @@
+# A first-order lag, y' = (u - y) / 1 s, from the Reference FMU `StateSpace` (FMI 3) with its
+# structural parameters bound to one state, one input and one output.
+#
+# Build the FMU for this host first (needs git, network and cc):
+#   crates/taktwerk-fmi/tests/reference-fmus.sh target/tmp/reference-fmus
+# Then, from the repository root:
+#   taktwerk check examples/fmi-state-space/project.toml
+#   taktwerk run examples/fmi-state-space/project.toml
+#   taktwerk tui opc.tcp://127.0.0.1:4851      # edit plant.u, watch plant.y follow
+
+[engine]
+tick_ms = 10.0
+
+[models.lag]
+kind = "fmi"
+path = "../../target/tmp/reference-fmus/fmi3/StateSpace"
+
+[[instance]]
+id = "plant"
+model = "lag"
+dims = { m = 1, n = 1, r = 1 }
+parameters = { A = [[-1.0]], B = [[1.0]], C = [[1.0]], D = [[0.0]], x0 = [0.0] }
+
+[[connector]]
+id = "ua"
+kind = "opcua-server"
+endpoint = "opc.tcp://127.0.0.1:4851"
