@@ -31,7 +31,8 @@ pub trait Connector: Send {
     ) -> BoxFuture<'a, Result<Option<usize>, ConnectorError>>;
 
     /// Check every mapping against the outside: items exist, types and lengths match `layout`.
-    fn bind<'a>(&'a mut self, layout: &'a ImageLayout) -> BoxFuture<'a, Result<(), ConnectorError>>;
+    fn bind<'a>(&'a mut self, layout: &'a ImageLayout)
+    -> BoxFuture<'a, Result<(), ConnectorError>>;
 
     /// Sync the image until `shutdown`. Reconnects on its own; returns only on shutdown or a
     /// failure it cannot recover from.
