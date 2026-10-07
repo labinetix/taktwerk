@@ -19,6 +19,7 @@ Commands:
   inspect        Print a model's interface: dimensions, variables, shapes
   new            Scaffold a project file for one model; prints it unless asked to write
   import-header  Propose a raw model descriptor from a C header; prints it unless asked to write
+  fmu-wrap       Wrap a confirmed raw model package as an FMI 3 co-simulation FMU; a dry run unless asked to write
   tui            Monitor a running engine over OPC UA and edit its inputs and tunables
   help           Print this message or the help of the given subcommand(s)
 
@@ -131,9 +132,43 @@ Arguments:
   <HEADER>  C header declaring the model's functions and structs
 
 Options:
-  -o, --output <OUTPUT>  Write the descriptor to this file instead of printing it
-      --force            Overwrite an existing file
-  -h, --help             Print help
+  -o, --output <OUTPUT>            Write the descriptor to this file instead of printing it
+      --force                      Overwrite an existing file
+      --entry <ENTRY>              The one function that serves as init and step (single entry point)
+      --arg-struct <PARAM=STRUCT>  Which struct an opaque `char *`/`void *` parameter of the entry carries, as `<param>=<struct>`; repeatable
+  -h, --help                       Print help
+```
+
+## `taktwerk fmu-wrap`
+
+```text
+Wrap a confirmed raw model package as an FMI 3 co-simulation FMU; a dry run unless asked to write
+
+Usage: taktwerk fmu-wrap [OPTIONS] <PACKAGE>
+
+Arguments:
+  <PACKAGE>
+          The raw model package (directory with `taktwerk-model.toml` and `lib/<arch>/`)
+
+Options:
+  -o, --output <OUTPUT>
+          The `.fmu` to write; default `<modelIdentifier>.fmu` in the working directory
+
+      --target <ARCH>
+          Target architecture (`aarch64`, `x86_64`), repeatable; default the host.
+
+          Another target needs `zig` on PATH (`zig cc -target <arch>-linux-gnu.2.25`) and the package's library for it.
+
+      --bundle <LIB>
+          A further library to ship beside the model's, repeatable.
+
+          A bare file name is taken from the package's `lib/<arch>/` per target, a path is copied as is; both land in `binaries/<arch>-linux/`.
+
+      --write
+          Build and write the FMU instead of printing what it would contain
+
+  -h, --help
+          Print help (see a summary with '-h')
 ```
 
 ## `taktwerk tui`

@@ -42,3 +42,24 @@ taktwerk run try.toml
 
 `inspect` prints dimensions and variables exactly as the engine sees them; it is the quickest
 way to confirm sizes, causalities, types and units came across.
+
+## Wrapping a raw model as an FMU
+
+A confirmed package can also leave taktwerk as a standard FMI 3 co-simulation FMU, for any
+importer:
+
+```sh
+taktwerk fmu-wrap path/to/package                       # dry run: variables, structural parameters, targets
+taktwerk fmu-wrap path/to/package --write -o model.fmu  # build for the host
+taktwerk fmu-wrap path/to/package --target aarch64 --target x86_64 --write   # cross-build with zig
+```
+
+The generated C wrapper does what the raw adapter does, in C: it allocates the buffers from the
+bound structural parameters (one `UInt64` per dimension, with the descriptor's `min`, `max` and
+`default` as `start`), fills the struct members per call, loads the library itself (a `single`
+library as a private copy per instance), checks `ok_codes` and reported lengths. The structs are
+emitted for the target compiler and checked against taktwerk's layout at compile time. Text
+buffers appear as `String` variables; a library told its step size (`builtin = "step_size"`) is
+initialised on the first `fmi3DoStep`, which fixes the communication step. The FMU carries the
+library and any `--bundle`d dependency under `binaries/<arch>-linux/` and the wrapper source
+under `sources/`.

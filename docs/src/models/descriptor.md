@@ -96,8 +96,10 @@ byte as true.
 **Reported lengths.** A `dim` member with `reported = true` is a length the library knows and
 writes itself. It is zeroed before init, then compared with the bound length after init and
 after every step; a difference fails the call with both values. The check runs after the call
-returned, so it catches a library loaded with the wrong sizes but cannot undo a write it already
-made beyond a buffer bound too small. The project file stays the size authority.
+returned, so a library loaded with the wrong sizes may already have written at its own size:
+every reported dimension therefore needs a `max`, and the engine allocates each buffer shaped by
+it at that `max` while exchanging only the bound length (text and byte buffers keep their
+literal capacity). The project file stays the size authority.
 
 **Text** travels as bytes: a `char *` member maps to a `u8` variable with a literal shape, its
 capacity with the terminating NUL included (`shape = [32]`). The caller supplies text through a
@@ -314,11 +316,11 @@ members = [
 `count` (an output), and `n_u`, `n_y` are reported lengths checked against the instance's bound
 `nu` and `ny`.
 
-The `taktwerk-raw` crate's `import_header_with` imports such a header when given the entry point
-and the struct behind each opaque parameter; it then also guesses a flag-like integer as a `phase`, size-like integer
-pointers in an output struct as `reported` lengths, and a leading integer argument as a `const`
-whose value is left to the developer. `taktwerk import-header` does not take these options yet:
-start from the example above, or from the plain proposal, and fill in the roles by hand.
+`taktwerk import-header model.h --entry model_call --arg-struct in=io_in --arg-struct out=io_out`
+imports such a header when told the entry point and the struct behind each opaque parameter; it
+then also guesses a flag-like integer as a `phase`, size-like integer pointers in an output
+struct as `reported` lengths, and a leading integer argument as a `const` whose value is left to
+the developer. Set each reported dimension's `max` before confirming.
 
 ## Calling convention
 

@@ -19,12 +19,16 @@ pub struct Args {
     /// The `.fmu` to write; default `<modelIdentifier>.fmu` in the working directory.
     #[arg(short, long)]
     pub output: Option<PathBuf>,
-    /// Target architectures (`aarch64`, `x86_64`); default the host. Another target needs
-    /// `zig` on PATH (`zig cc -target <arch>-linux-gnu.2.25`) and the package's library for it.
+    /// Target architecture (`aarch64`, `x86_64`), repeatable; default the host.
+    ///
+    /// Another target needs `zig` on PATH (`zig cc -target <arch>-linux-gnu.2.25`) and the
+    /// package's library for it.
     #[arg(long = "target", value_name = "ARCH")]
     pub targets: Vec<String>,
-    /// Further libraries to ship beside the model's in `binaries/<arch>-linux/`: a bare file
-    /// name is taken from the package's `lib/<arch>/` per target, a path copied as is.
+    /// A further library to ship beside the model's, repeatable.
+    ///
+    /// A bare file name is taken from the package's `lib/<arch>/` per target, a path is copied
+    /// as is; both land in `binaries/<arch>-linux/`.
     #[arg(long = "bundle", value_name = "LIB")]
     pub bundle: Vec<PathBuf>,
     /// Build and write the FMU instead of printing what it would contain.
