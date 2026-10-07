@@ -1,9 +1,9 @@
 //! The engine's own OPC UA server (`kind = "opcua-server"`).
 //!
 //! Every image signal is a variable node: NodeId `ns=<namespace>;s=<signal name>`, browse path
-//! the name split on `.` into folders under `Objects`. Every node follows each publish; outputs
-//! and system signals are read-only, inputs and tunables are writable and a write goes to the
-//! image.
+//! the name split on `.` into folders under `Objects`, Description its direction (`input`,
+//! `output`, `tunable`, `system`). Every node follows each publish; outputs and system signals
+//! are read-only, inputs and tunables are writable and a write goes to the image.
 //!
 //! ```toml
 //! [[connector]]
@@ -262,6 +262,16 @@ impl OpcUaServer {
     }
 }
 
+/// The Description attribute of a signal node.
+const fn direction_name(d: Direction) -> &'static str {
+    match d {
+        Direction::Input => "input",
+        Direction::Output => "output",
+        Direction::Tunable => "tunable",
+        Direction::System => "system",
+    }
+}
+
 /// Add a folder per name prefix and a variable per signal.
 fn populate(
     manager: &SimpleNodeManager,
@@ -301,6 +311,7 @@ fn populate(
         let shape = Shape::of_signal(&spec.shape, spec.layout);
         let scratch = Buffer::zeroed(spec.ty, spec.len());
         let mut builder = VariableBuilder::new(&node, QualifiedName::new(ns, *leaf), *leaf)
+            .description(direction_name(spec.direction))
             .value(convert::to_variant(&scratch, &shape))
             .data_type(convert::data_type_node(spec.ty))
             .organized_by(parent);

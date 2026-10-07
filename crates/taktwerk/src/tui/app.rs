@@ -7,6 +7,51 @@ use opcua::types::Variant;
 
 use super::value;
 
+/// Who writes a signal, as the server's node Description says.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Dir {
+    /// `input`.
+    Input,
+    /// `output`.
+    Output,
+    /// `tunable`.
+    Tunable,
+    /// `system`.
+    System,
+    /// No or an unknown description (another server).
+    Unknown,
+}
+
+impl Dir {
+    /// Parse a node Description.
+    pub fn parse(text: &str) -> Self {
+        match text {
+            "input" => Self::Input,
+            "output" => Self::Output,
+            "tunable" => Self::Tunable,
+            "system" => Self::System,
+            _ => Self::Unknown,
+        }
+    }
+
+    /// The `dir` column: `in`, `out`, `tun`, `sys`; `in`/`out` by write access when unknown.
+    pub const fn label(self, writable: bool) -> &'static str {
+        match self {
+            Self::Input => "in",
+            Self::Output => "out",
+            Self::Tunable => "tun",
+            Self::System => "sys",
+            Self::Unknown => {
+                if writable {
+                    "in"
+                } else {
+                    "out"
+                }
+            }
+        }
+    }
+}
+
 /// One signal as last read.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Row {
@@ -14,6 +59,8 @@ pub struct Row {
     pub name: String,
     /// Inputs and tunables are writable; outputs and system signals are not.
     pub writable: bool,
+    /// Direction, from the node Description.
+    pub dir: Dir,
     /// Last value read; `Empty` before the first read.
     pub value: Variant,
     /// When the engine wrote the value (the node's source timestamp).
@@ -193,10 +240,11 @@ pub(crate) mod tests {
 
     use super::*;
 
-    pub(crate) fn row(name: &str, writable: bool, value: Variant) -> Row {
+    pub(crate) fn row(name: &str, dir: Dir, value: Variant) -> Row {
         Row {
             name: name.into(),
-            writable,
+            writable: matches!(dir, Dir::Input | Dir::Tunable),
+            dir,
             value,
             stamp: None,
         }
@@ -204,15 +252,23 @@ pub(crate) mod tests {
 
     pub(crate) fn sample() -> Vec<Row> {
         vec![
-            row("taktwerk.status", false, Variant::Int32(1)),
-            row("taktwerk.heartbeat", false, Variant::UInt64(1234)),
-            row("taktwerk.cycle", false, Variant::UInt64(1240)),
-            row("taktwerk.overruns", false, Variant::UInt64(0)),
-            row("taktwerk.stale", false, Variant::UInt64(6)),
-            row("plant.y", false, Variant::Double(0.25)),
-            row("plant.u", true, Variant::Double(1.0)),
-            row("plant.k", true, Variant::Int32(3)),
+            row("taktwerk.status", Dir::System, Variant::Int32(1)),
+            row("taktwerk.heartbeat", Dir::System, Variant::UInt64(1234)),
+            row("taktwerk.cycle", Dir::System, Variant::UInt64(1240)),
+            row("taktwerk.overruns", Dir::System, Variant::UInt64(0)),
+            row("taktwerk.stale", Dir::System, Variant::UInt64(6)),
+            row("plant.y", Dir::Output, Variant::Double(0.25)),
+            row("plant.u", Dir::Input, Variant::Double(1.0)),
+            row("plant.k", Dir::Tunable, Variant::Int32(3)),
         ]
+    }
+
+    #[test]
+    fn directions_label_the_column() {
+        assert_eq!(Dir::parse("tunable").label(true), "tun");
+        assert_eq!(Dir::parse("system").label(false), "sys");
+        assert_eq!(Dir::parse("").label(true), "in");
+        assert_eq!(Dir::parse("other").label(false), "out");
     }
 
     fn press(app: &mut App, code: KeyCode) -> Action {
@@ -277,7 +333,7 @@ pub(crate) mod tests {
         app.update(sample());
         press(&mut app, KeyCode::Down);
         let mut more = sample();
-        more.push(row("a.first", false, Variant::Double(0.0)));
+        more.push(row("a.first", Dir::Output, Variant::Double(0.0)));
         app.update(more);
         assert_eq!(app.rows[app.selected].name, "plant.u");
     }

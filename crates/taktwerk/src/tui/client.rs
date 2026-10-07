@@ -14,7 +14,7 @@ use opcua::types::{
 use tokio::sync::{mpsc, watch};
 use tokio::task::JoinHandle;
 
-use super::app::Row;
+use super::app::{Dir, Row};
 
 /// How often every signal is read.
 const POLL: Duration = Duration::from_millis(200);
@@ -31,6 +31,7 @@ struct Signal {
     name: String,
     node: NodeId,
     writable: bool,
+    dir: Dir,
 }
 
 /// An OPC UA source timestamp as wall time.
@@ -123,6 +124,7 @@ impl Conn {
                                     name: s.as_ref().to_owned(),
                                     node,
                                     writable: false,
+                                    dir: Dir::Unknown,
                                 });
                             }
                         }
@@ -141,11 +143,23 @@ impl Conn {
         }
         let reads: Vec<ReadValueId> = found
             .iter()
-            .map(|s| ReadValueId::new(s.node.clone(), AttributeId::UserAccessLevel))
+            .flat_map(|s| {
+                [
+                    ReadValueId::new(s.node.clone(), AttributeId::UserAccessLevel),
+                    ReadValueId::new(s.node.clone(), AttributeId::Description),
+                ]
+            })
             .collect();
-        let levels = self.read(&reads).await?;
-        for (s, level) in found.iter_mut().zip(levels) {
-            s.writable = matches!(level.value, Some(Variant::Byte(b)) if b & CURRENT_WRITE != 0);
+        let attrs = self.read(&reads).await?;
+        for (s, pair) in found.iter_mut().zip(attrs.chunks(2)) {
+            s.writable = matches!(
+                pair.first().and_then(|dv| dv.value.as_ref()),
+                Some(Variant::Byte(b)) if b & CURRENT_WRITE != 0
+            );
+            s.dir = match pair.get(1).and_then(|dv| dv.value.as_ref()) {
+                Some(Variant::LocalizedText(text)) => Dir::parse(text.text.as_ref()),
+                _ => Dir::Unknown,
+            };
         }
         found.sort_by(|a, b| a.name.cmp(&b.name));
         Ok(found)
@@ -177,6 +191,7 @@ impl Conn {
             .map(|(s, dv)| Row {
                 name: s.name.clone(),
                 writable: s.writable,
+                dir: s.dir,
                 // A never-written signal carries the read time; it has no age.
                 stamp: if dv.status == Some(StatusCode::UncertainInitialValue) {
                     None

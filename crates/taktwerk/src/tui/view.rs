@@ -76,7 +76,7 @@ pub fn draw(frame: &mut Frame<'_>, app: &App, now: SystemTime) {
     let rows = app.rows.iter().map(|r| {
         TableRow::new(vec![
             r.name.clone(),
-            if r.writable { "in" } else { "out" }.to_owned(),
+            r.dir.label(r.writable).to_owned(),
             value::format(&r.value),
             age(now, r.stamp),
         ])
@@ -164,7 +164,7 @@ mod tests {
             "└──────────────────────────────────────────────────────────────────────┘",
             "┌ signals ─────────────────────────────────────────────────────────────┐",
             "│  signal                   dir  value                        age      │",
-            "│> plant.k                  in   3                            12 ms    │",
+            "│> plant.k                  tun  3                            12 ms    │",
             "│  plant.u                  in   1                            12 ms    │",
             "│  plant.y                  out  0.25                         3.4 s    │",
             "│                                                                      │",
