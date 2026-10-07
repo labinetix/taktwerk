@@ -1542,7 +1542,12 @@ dependencies = [
 name = "taktwerk-raw"
 version = "0.1.0"
 dependencies = [
+ "libloading",
+ "serde",
  "taktwerk-core",
+ "tempfile",
+ "thiserror",
+ "toml",
 ]
 
 [[package]]
