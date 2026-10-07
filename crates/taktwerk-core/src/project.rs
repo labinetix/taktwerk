@@ -25,8 +25,9 @@
 //!
 //! An unmapped input, output or tunable `v` of instance `i` gets the signal `i.v`.
 
-use std::collections::BTreeMap;
-use std::path::PathBuf;
+use std::collections::{BTreeMap, BTreeSet};
+use std::path::{Path, PathBuf};
+use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
 
@@ -184,4 +185,123 @@ pub struct ConnectorConfig {
     /// Kind-specific keys, parsed by the connector.
     #[serde(flatten)]
     pub settings: toml::Table,
+}
+
+impl Project {
+    /// Parse and structurally validate a project file.
+    ///
+    /// # Errors
+    /// The file cannot be read or parsed, or [`Self::validate`] fails.
+    pub fn load(path: &Path) -> Result<Self, ProjectError> {
+        let text = std::fs::read_to_string(path)
+            .map_err(|e| ProjectError::Read(path.to_path_buf(), e.to_string()))?;
+        text.parse()
+    }
+
+    /// The checks that need no model interface: ids unique, model refs known, periods positive.
+    ///
+    /// # Errors
+    /// The first violation found.
+    pub fn validate(&self) -> Result<(), ProjectError> {
+        let tick_ok = self.engine.tick_ms.is_finite() && self.engine.tick_ms > 0.0;
+        if !tick_ok {
+            return Err(ProjectError::Invalid(format!(
+                "engine.tick_ms must be a positive number, got {}",
+                self.engine.tick_ms
+            )));
+        }
+        if self.engine.system_prefix.is_empty() {
+            return Err(ProjectError::Invalid(
+                "engine.system_prefix is empty".into(),
+            ));
+        }
+        if let Some(rt) = &self.engine.realtime {
+            if !(1..=99).contains(&rt.priority) {
+                return Err(ProjectError::Invalid(format!(
+                    "engine.realtime.priority must be 1..=99, got {}",
+                    rt.priority
+                )));
+            }
+        }
+        let mut ids = BTreeSet::new();
+        for inst in &self.instances {
+            if inst.id.is_empty() || inst.id.contains('.') {
+                return Err(ProjectError::Invalid(format!(
+                    "instance id `{}` must be non-empty and contain no `.`",
+                    inst.id
+                )));
+            }
+            if !ids.insert(inst.id.as_str()) {
+                return Err(ProjectError::Invalid(format!(
+                    "duplicate instance id `{}`",
+                    inst.id
+                )));
+            }
+            if !self.models.contains_key(&inst.model) {
+                return Err(ProjectError::Invalid(format!(
+                    "instance `{}` references unknown model `{}`",
+                    inst.id, inst.model
+                )));
+            }
+            if inst.every == 0 {
+                return Err(ProjectError::Invalid(format!(
+                    "instance `{}`: every must be >= 1",
+                    inst.id
+                )));
+            }
+        }
+        let mut ids = BTreeSet::new();
+        for c in &self.connectors {
+            if !ids.insert(c.id.as_str()) {
+                return Err(ProjectError::Invalid(format!(
+                    "duplicate connector id `{}`",
+                    c.id
+                )));
+            }
+        }
+        Ok(())
+    }
+}
+
+impl FromStr for Project {
+    type Err = ProjectError;
+
+    fn from_str(text: &str) -> Result<Self, Self::Err> {
+        let project: Self = toml::from_str(text).map_err(|e| ProjectError::Parse(e.to_string()))?;
+        project.validate()?;
+        Ok(project)
+    }
+}
+
+impl InputBinding {
+    /// The signal name.
+    #[must_use]
+    pub fn signal(&self) -> &str {
+        match self {
+            Self::Signal(s) | Self::Detailed { signal: s, .. } => s,
+        }
+    }
+
+    /// The age limit, when the binding sets one.
+    #[must_use]
+    pub fn max_age_ms(&self) -> Option<f64> {
+        match self {
+            Self::Signal(_) => None,
+            Self::Detailed { max_age_ms, .. } => *max_age_ms,
+        }
+    }
+}
+
+/// A project file could not be read, parsed or validated.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+pub enum ProjectError {
+    /// The file could not be read.
+    #[error("read {0}: {1}")]
+    Read(PathBuf, String),
+    /// The TOML does not match the schema.
+    #[error("parse: {0}")]
+    Parse(String),
+    /// The document is well-formed but inconsistent.
+    #[error("{0}")]
+    Invalid(String),
 }
