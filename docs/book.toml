@@ -1,0 +1,10 @@
+[book]
+title = "taktwerk"
+description = "User and developer guide of taktwerk, a fixed-step model execution engine for Linux"
+language = "en"
+src = "src"
+
+[output.html]
+site-url = "/taktwerk/"
+git-repository-url = "https://github.com/labinetix/taktwerk"
+edit-url-template = "https://github.com/labinetix/taktwerk/edit/main/docs/{path}"

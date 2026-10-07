@@ -4,6 +4,9 @@ Runs compiled models (FMI co-simulation FMUs or plain C libraries) at a fixed st
 beside or on a PLC. The engine owns a process image, serves it over its own OPC UA server, and
 syncs it with other systems through connectors.
 
+**Guide:** [labinetix.github.io/taktwerk](https://labinetix.github.io/taktwerk/), for users
+and model developers.
+
 ```mermaid
 flowchart LR
   subgraph taktwerk
