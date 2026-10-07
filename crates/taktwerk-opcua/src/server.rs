@@ -111,7 +111,8 @@ struct Prepared {
     server: Server,
     handle: ServerHandle,
     manager: Arc<SimpleNodeManager>,
-    listener: TcpListener,
+    /// Bound by `bind`; `check` leaves it for `run`.
+    listener: Option<TcpListener>,
     readable: Vec<Exposed>,
     writable: Vec<Exposed>,
 }
@@ -212,7 +213,12 @@ impl OpcUaServer {
         Ok(builder)
     }
 
-    async fn prepare(&self, layout: &ImageLayout) -> Result<Prepared, ConnectorError> {
+    /// Build the server and its nodes; with `listen`, also bind the listen socket.
+    async fn prepare(
+        &self,
+        layout: &ImageLayout,
+        listen: bool,
+    ) -> Result<Prepared, ConnectorError> {
         let namespace = NamespaceMetadata {
             namespace_uri: self.settings.namespace.clone(),
             ..Default::default()
@@ -231,12 +237,11 @@ impl OpcUaServer {
             .ok_or_else(|| ConnectorError::Io("signal namespace not registered".to_owned()))?;
         let (readable, writable) = populate(&manager, ns, layout)?;
 
-        let (host, port) = settings::host_port(&self.settings.endpoint)?;
-        let listener = TcpListener::bind((host.as_str(), port))
-            .await
-            .map_err(|e| {
-                ConnectorError::Io(format!("listen on {}: {e}", self.settings.endpoint))
-            })?;
+        let listener = if listen {
+            Some(self.listen().await?)
+        } else {
+            None
+        };
         Ok(Prepared {
             server,
             handle,
@@ -245,6 +250,15 @@ impl OpcUaServer {
             readable,
             writable,
         })
+    }
+}
+
+impl OpcUaServer {
+    async fn listen(&self) -> Result<TcpListener, ConnectorError> {
+        let (host, port) = settings::host_port(&self.settings.endpoint)?;
+        TcpListener::bind((host.as_str(), port))
+            .await
+            .map_err(|e| ConnectorError::Io(format!("listen on {}: {e}", self.settings.endpoint)))
     }
 }
 
@@ -424,7 +438,17 @@ impl Connector for OpcUaServer {
         layout: &'a ImageLayout,
     ) -> BoxFuture<'a, Result<(), ConnectorError>> {
         Box::pin(async move {
-            self.prepared = Some(self.prepare(layout).await?);
+            self.prepared = Some(self.prepare(layout, true).await?);
+            Ok(())
+        })
+    }
+
+    fn check<'a>(
+        &'a mut self,
+        layout: &'a ImageLayout,
+    ) -> BoxFuture<'a, Result<(), ConnectorError>> {
+        Box::pin(async move {
+            self.prepare(layout, false).await?;
             Ok(())
         })
     }
@@ -435,10 +459,14 @@ impl Connector for OpcUaServer {
         mut shutdown: Shutdown,
     ) -> BoxFuture<'static, Result<(), ConnectorError>> {
         Box::pin(async move {
-            let this = *self;
-            let mut p = match this.prepared {
+            let mut this = *self;
+            let mut p = match this.prepared.take() {
                 Some(p) => p,
-                None => this.prepare(image.layout()).await?,
+                None => this.prepare(image.layout(), false).await?,
+            };
+            let listener = match p.listener.take() {
+                Some(l) => l,
+                None => this.listen().await?,
             };
             let (tx, mut rx) = mpsc::unbounded_channel();
             for (index, exposed) in p.writable.iter().enumerate() {
@@ -456,7 +484,7 @@ impl Connector for OpcUaServer {
                 p.readable.iter_mut().chain(p.writable.iter_mut()),
             );
 
-            let mut server = tokio::spawn(p.server.run_with(p.listener));
+            let mut server = tokio::spawn(p.server.run_with(listener));
             tracing::info!(connector = %this.id, endpoint = %this.settings.endpoint, "OPC UA server up");
             let mut published = image.published();
             let result = loop {

@@ -135,7 +135,10 @@ fn check_prints_the_plan() {
         stdout.contains("plant.u             input      f64   [1]"),
         "{stdout}"
     );
-    assert!(stdout.contains("ok: 1 instance(s), 12 signal(s), 1 connector(s) bound"));
+    assert!(
+        stdout.contains("ok: 1 instance(s), 12 signal(s), 1 connector(s) verified"),
+        "{stdout}"
+    );
 }
 
 #[test]

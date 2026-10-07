@@ -34,6 +34,15 @@ pub trait Connector: Send {
     fn bind<'a>(&'a mut self, layout: &'a ImageLayout)
     -> BoxFuture<'a, Result<(), ConnectorError>>;
 
+    /// Verify like [`bind`](Self::bind) without taking a resource a running engine would hold
+    /// (a server's listen socket); `taktwerk check` calls this. Defaults to `bind`.
+    fn check<'a>(
+        &'a mut self,
+        layout: &'a ImageLayout,
+    ) -> BoxFuture<'a, Result<(), ConnectorError>> {
+        self.bind(layout)
+    }
+
     /// Sync the image until `shutdown`. Reconnects on its own; returns only on shutdown or a
     /// failure it cannot recover from.
     fn run(

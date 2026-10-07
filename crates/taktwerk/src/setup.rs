@@ -59,14 +59,25 @@ pub fn model_path(project_file: &Path, path: &Path) -> PathBuf {
         .join(path)
 }
 
-/// Load `project_file` and take it as far as bound connectors.
+/// What the prepared project is for: `Check` verifies connectors without taking resources a
+/// running engine would hold (listen sockets), `Run` binds them.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Stage {
+    /// `taktwerk check`.
+    Check,
+    /// `taktwerk run`.
+    Run,
+}
+
+/// Load `project_file` and take it as far as bound (or, for `Stage::Check`, verified)
+/// connectors.
 ///
 /// Model and connector problems are collected, not stopped at; resolution and binding run once
 /// everything loaded.
 ///
 /// # Errors
 /// Every problem found.
-pub async fn prepare(project_file: &Path) -> Result<Ready, Problems> {
+pub async fn prepare(project_file: &Path, stage: Stage) -> Result<Ready, Problems> {
     let project = Project::load(project_file).map_err(|e| e.to_string())?;
     let mut problems = Vec::new();
 
@@ -100,7 +111,11 @@ pub async fn prepare(project_file: &Path) -> Result<Ready, Problems> {
         .await
         .map_err(|e| e.to_string())?;
     for c in &mut connectors {
-        if let Err(e) = c.bind(&plan.layout).await {
+        let bound = match stage {
+            Stage::Check => c.check(&plan.layout).await,
+            Stage::Run => c.bind(&plan.layout).await,
+        };
+        if let Err(e) = bound {
             problems.push(format!("connector `{}`: {e}", c.id()));
         }
     }
@@ -174,7 +189,7 @@ kind = "modbus"
 "#,
         )
         .unwrap();
-        let err = prepare(&file).await.err().unwrap();
+        let err = prepare(&file, Stage::Check).await.err().unwrap();
         assert_eq!(err.0.len(), 3, "{err}");
         let text = err.to_string();
         assert!(text.starts_with("3 problems"), "{text}");
@@ -189,7 +204,7 @@ kind = "modbus"
         let dir = scratch("parse");
         let file = dir.join("p.toml");
         std::fs::write(&file, "[engine]\ntick_ms = -1.0\n").unwrap();
-        let err = prepare(&file).await.err().unwrap();
+        let err = prepare(&file, Stage::Check).await.err().unwrap();
         assert_eq!(err.0.len(), 1);
         assert!(err.0[0].contains("tick_ms"), "{err}");
         let _ = std::fs::remove_dir_all(dir);

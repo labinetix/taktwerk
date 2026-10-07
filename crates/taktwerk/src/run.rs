@@ -15,7 +15,7 @@ use tokio::sync::watch;
 use tokio::task::JoinSet;
 use tracing::{error, info, warn};
 
-use crate::setup::{self, Ready};
+use crate::setup::{self, Ready, Stage};
 use crate::summary;
 
 /// How long connectors get to stop after shutdown is signalled.
@@ -30,14 +30,16 @@ fn runtime() -> anyhow::Result<Runtime> {
         .context("cannot start the I/O runtime")
 }
 
-/// Load, resolve and bind `project_file`, print the plan; no cycle is started.
+/// Load, resolve and verify `project_file`, print the plan; no cycle is started and no listen
+/// socket opened, so it runs beside an engine serving the same endpoint.
 pub fn check(project_file: &Path) -> anyhow::Result<ExitCode> {
     let rt = runtime()?;
-    match rt.block_on(setup::prepare(project_file)) {
+    match rt.block_on(setup::prepare(project_file, Stage::Check)) {
         Ok(ready) => {
             print!("{}", summary::plan(&ready.plan));
             println!(
-                "\nok: {} instance(s), {} signal(s), {} connector(s) bound",
+                "\nok: {} instance(s), {} signal(s), {} connector(s) verified (servers not \
+                 listening)",
                 ready.plan.instances.len(),
                 ready.plan.layout.len(),
                 ready.connectors.len()
@@ -76,7 +78,7 @@ type Tasks = JoinSet<(String, Result<(), ConnectorError>)>;
 /// Run `project_file` until SIGINT or SIGTERM, a model error or a connector failure.
 pub fn run(project_file: &Path) -> anyhow::Result<ExitCode> {
     let rt = runtime()?;
-    let ready = match rt.block_on(setup::prepare(project_file)) {
+    let ready = match rt.block_on(setup::prepare(project_file, Stage::Run)) {
         Ok(ready) => ready,
         Err(problems) => {
             eprintln!("{}: {problems}", project_file.display());
