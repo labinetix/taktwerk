@@ -2496,9 +2496,12 @@ dependencies = [
  "libloading",
  "serde",
  "taktwerk-core",
+ "taktwerk-fmi",
  "tempfile",
  "thiserror 2.0.21",
  "toml",
+ "tracing-subscriber",
+ "zip",
 ]
 
 [[package]]

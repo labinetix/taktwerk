@@ -62,6 +62,11 @@ signals over OPC UA.
   seeded in the image from the model, so a write to one tunable never zeroes another.
 - **The engine knows no producer.** A toolchain that wants its models run (labinetix among them)
   emits a model package or an FMU.
+- **A raw package can leave as an FMU.** `taktwerk fmu-wrap` generates an FMI 3 co-simulation
+  wrapper in C from the confirmed descriptor (structs emitted for the target compiler and
+  checked against taktwerk's layout, one `UInt64` structural parameter per dimension, text as
+  `String` with its capacity in an annotation) and packs it with the library; the wrapper does
+  what the raw adapter does, so an FMU importer runs the model without taktwerk.
 
 ## Safety
 

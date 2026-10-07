@@ -280,6 +280,12 @@
 //! `phase`, size-like integer pointers in an output struct as `reported` lengths, and a leading
 //! integer argument as a `const` whose value is left to the developer.
 //!
+//! # Wrapping as an FMU
+//!
+//! [`fmu::generate`] turns a confirmed descriptor into an FMI 3 co-simulation wrapper (C source
+//! and `modelDescription.xml`), [`fmu::build::build`] compiles and packs it with the library;
+//! `taktwerk fmu-wrap` is the command.
+//!
 //! # Calling convention
 //!
 //! Supported targets are aarch64 and x86_64 Linux. Up to eight pointer/integer and eight
@@ -297,6 +303,7 @@
 
 pub mod adapter;
 pub mod descriptor;
+pub mod fmu;
 pub mod import;
 pub mod layout;
 
