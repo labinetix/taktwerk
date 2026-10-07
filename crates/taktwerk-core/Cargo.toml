@@ -1,6 +1,7 @@
 [package]
 name = "taktwerk-core"
 description = "Process image, scheduler and model/connector contracts of the taktwerk engine"
+readme = "../../README.md"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

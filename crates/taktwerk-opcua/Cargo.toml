@@ -1,6 +1,7 @@
 [package]
 name = "taktwerk-opcua"
 description = "OPC UA server and client connectors for taktwerk"
+readme = "../../README.md"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

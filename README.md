@@ -13,8 +13,24 @@ flowchart LR
   end
   M[FMU / C library] --- S
   C <--> PLC[PLC]
-  SRV <--> UI[CLI · TUI · any OPC UA client]
+  SRV <--> UI[taktwerk tui · any OPC UA client]
 ```
+
+## Getting started
+
+```sh
+cargo install taktwerk                   # or, from a checkout: cargo build --release
+
+taktwerk inspect plant.fmu --kind fmi    # dimensions, variables, shapes
+taktwerk new plant.fmu --kind fmi -o plant.toml
+taktwerk check plant.toml                # load, resolve, bind; prints the plan
+taktwerk run plant.toml                  # until SIGINT or SIGTERM
+taktwerk tui opc.tcp://127.0.0.1:4840    # watch signals, edit inputs and tunables
+```
+
+A C library becomes a model package with `taktwerk import-header model.h -o
+taktwerk-model.toml`, confirmed by hand. Runnable projects: [examples](examples/) (an FMU, a C
+controller, both in one loop, and a systemd unit).
 
 Not released yet. Design: [DESIGN.md](DESIGN.md).
 

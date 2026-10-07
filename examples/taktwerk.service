@@ -1,0 +1,26 @@
+# systemd unit for one engine. Install as /etc/systemd/system/taktwerk.service, then
+#   systemctl daemon-reload && systemctl enable --now taktwerk
+# The service manager restarts the engine after a model error (fail-stop).
+[Unit]
+Description=taktwerk model engine
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=taktwerk
+WorkingDirectory=/srv/taktwerk
+ExecStart=/usr/local/bin/taktwerk run /srv/taktwerk/project.toml
+Restart=on-failure
+RestartSec=2
+Environment=RUST_LOG=info
+
+# Real time: `[engine.realtime]` in the project asks for SCHED_FIFO, a CPU and mlockall on the
+# cycle thread only. These limits let it do so without root.
+LimitRTPRIO=90
+LimitMEMLOCK=infinity
+# Optional: keep the rest of the process (OPC UA I/O) off the cycle thread's CPU; the project's
+# `cpu` then names the CPU left free, ideally one isolated with `isolcpus=` or a cpuset.
+# CPUAffinity=0-2
+
+[Install]
+WantedBy=multi-user.target

@@ -1,6 +1,7 @@
 [package]
 name = "taktwerk-raw"
 description = "Raw C library model adapter for taktwerk: header import, descriptors, C layout"
+readme = "../../README.md"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

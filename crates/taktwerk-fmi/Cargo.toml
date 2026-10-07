@@ -1,6 +1,7 @@
 [package]
 name = "taktwerk-fmi"
 description = "FMI 2 and FMI 3 co-simulation model adapter for taktwerk"
+readme = "../../README.md"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
