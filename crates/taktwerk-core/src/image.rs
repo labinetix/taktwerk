@@ -301,6 +301,32 @@ impl CycleImage {
         Ok(())
     }
 
+    /// Write the value a model reported for tunable `id` at init, unless a connector wrote it
+    /// already. Returns the new write counter when it wrote. No allocation.
+    ///
+    /// # Errors
+    /// The signal is unknown, is not a tunable, or `value` does not match it.
+    pub fn seed(
+        &self,
+        id: SignalId,
+        value: &Buffer,
+        now: Instant,
+    ) -> Result<Option<u64>, ImageError> {
+        if self.shared.direction(id)? != Direction::Tunable {
+            return Err(ImageError::NotWritable(id));
+        }
+        let mut slot = self.shared.slot(id)?;
+        if slot.seq != 0 {
+            return Ok(None);
+        }
+        slot.value
+            .copy_from(value)
+            .map_err(|_| ImageError::Mismatch(id))?;
+        slot.stamp = Some(now);
+        slot.seq = 1;
+        Ok(Some(1))
+    }
+
     /// Announce that tick `cycle` is stored: its outputs, or only its system signals when the tick
     /// was skipped.
     pub fn publish(&self, cycle: u64) {

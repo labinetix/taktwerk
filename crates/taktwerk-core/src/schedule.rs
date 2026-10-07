@@ -489,6 +489,15 @@ impl Cycle {
                     instance: slot.id.clone(),
                     source,
                 })?;
+            // A tunable nobody wrote shows the model's value, and a later change of another
+            // tunable delivers that value rather than a zero.
+            for (k, (id, seq)) in slot.tunables.iter_mut().enumerate() {
+                if *seq == 0 {
+                    if let Some(s) = self.image.seed(*id, &slot.io.tunables[k], now)? {
+                        *seq = s;
+                    }
+                }
+            }
         }
         self.status = Status::Running;
         self.store_system(now)?;
@@ -930,7 +939,8 @@ mod tests {
         rig.tick().unwrap(); // tick 3: flag cleared
         assert_eq!(rig.f64("b.y"), 5.0);
         assert!(!rig.cycle.slots[1].io.tunables_changed);
-        assert_eq!(rig.cycle.slots[1].tunables[0].1, 1);
+        // Seeded at init (1), written once (2).
+        assert_eq!(rig.cycle.slots[1].tunables[0].1, 2);
         let changed: Vec<_> = rig
             .events()
             .into_iter()
@@ -939,6 +949,26 @@ mod tests {
         assert_eq!(changed.len(), 1);
         assert_eq!(&*changed[0].0, "b");
         assert!((changed[0].2 - 100.02).abs() < 1e-9);
+    }
+
+    #[test]
+    fn an_unwritten_tunable_is_seeded_with_the_model_value() {
+        let mut plan = two_instance_plan(None);
+        plan.instances[1]
+            .spec
+            .params
+            .insert("k".into(), Buffer::F64(vec![3.0]));
+        let mut rig = Rig::new(plan, None);
+        rig.cycle.init(rig.now).unwrap();
+        assert_eq!(rig.f64("b.k"), 3.0);
+        rig.tick().unwrap();
+        assert!(!rig.cycle.slots[1].io.tunables_changed);
+        // A connector's write still wins over the seed.
+        rig.write("b.k", 4.0);
+        rig.tick().unwrap();
+        rig.tick().unwrap();
+        assert_eq!(rig.f64("b.k"), 4.0);
+        assert_eq!(rig.cycle.slots[1].tunables[0].1, 2);
     }
 
     #[test]
