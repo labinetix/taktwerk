@@ -2,8 +2,10 @@
 //!
 //! [`FmuAdapter::load`] reads an `.fmu` or an extracted FMU directory and exposes it as a
 //! [`ModelAdapter`]. FMI 3 structural parameters become the interface's dimensions; arrays sized
-//! by them become symbolic shapes. Model exchange, and String, Binary and Clock variables, are
-//! refused.
+//! by them become symbolic shapes. An FMI 3 `String` variable is a `u8` buffer of literal
+//! capacity (a `taktwerk` annotation names it, else [`DEFAULT_TEXT_CAPACITY`]), exchanged
+//! NUL-terminated and truncated to the capacity. Model exchange, and Binary and Clock
+//! variables, are refused.
 
 mod description;
 mod ffi;
@@ -19,8 +21,8 @@ use taktwerk_core::model::{
 use taktwerk_core::value::{Buffer, Dim, ScalarType};
 use tempfile::TempDir;
 
-pub use description::FmiVersion;
 use description::ModelDescription;
+pub use description::{DEFAULT_TEXT_CAPACITY, FmiVersion};
 
 /// The FMU's files on disk: an extracted temp dir or a directory given by the caller.
 #[derive(Debug)]
@@ -286,20 +288,22 @@ impl ModelAdapter for FmuAdapter {
                 ty: v.ty,
                 len,
                 causality: v.causality,
+                text: v.text,
+                scratch: if v.text { vec![0; len + 1] } else { Vec::new() },
             });
         }
 
         // Parameters must name a parameter or tunable and match its type and length.
         let mut params = Vec::with_capacity(spec.params.len());
         for (name, value) in &spec.params {
-            let slot = self
+            let (index, slot) = self
                 .desc
                 .variables
                 .iter()
-                .zip(&slots)
+                .zip(slots.iter().enumerate())
                 .find(|(v, _)| &v.name == name)
                 .map(|(_, s)| s)
-                .filter(|s| matches!(s.causality, Causality::Parameter | Causality::Tunable))
+                .filter(|(_, s)| matches!(s.causality, Causality::Parameter | Causality::Tunable))
                 .ok_or_else(|| {
                     ModelError::Instantiate(format!("{name}: no parameter of that name"))
                 })?;
@@ -312,7 +316,7 @@ impl ModelAdapter for FmuAdapter {
                     value.ty()
                 )));
             }
-            params.push((slot.vr, value));
+            params.push((index, value));
         }
 
         let (lib, hold) = self.library()?;
@@ -334,8 +338,10 @@ impl ModelAdapter for FmuAdapter {
             }
             fmu.exit_configuration_mode()?;
         }
-        for (vr, value) in params {
-            fmu.set(vr, value)?;
+        for (index, value) in params {
+            if let Some(slot) = slots.get_mut(index) {
+                set_slot(&mut fmu, slot, value)?;
+            }
         }
 
         let pick = |c: Causality| -> Vec<Slot> {
@@ -361,6 +367,38 @@ struct Slot {
     ty: ScalarType,
     len: usize,
     causality: Causality,
+    /// A `String` variable: `len` is its capacity, the buffer a `u8` one.
+    text: bool,
+    /// Text slots: `len + 1` bytes for the NUL-terminated copy handed to `fmi3SetString`.
+    scratch: Vec<u8>,
+}
+
+/// Write `buf` to the slot's variable. No allocation.
+fn set_slot(fmu: &mut ffi::Instance, slot: &mut Slot, buf: &Buffer) -> Result<(), ModelError> {
+    if !slot.text {
+        return fmu.set(slot.vr, buf);
+    }
+    let Buffer::U8(bytes) = buf else {
+        return Err(ModelError::Instantiate(format!(
+            "value reference {}: a String variable takes a u8 buffer",
+            slot.vr
+        )));
+    };
+    fmu.set_string(slot.vr, bytes, &mut slot.scratch)
+}
+
+/// Read the slot's variable into `buf`. No allocation.
+fn get_slot(fmu: &mut ffi::Instance, slot: &Slot, buf: &mut Buffer) -> Result<(), ModelError> {
+    if !slot.text {
+        return fmu.get(slot.vr, buf);
+    }
+    let Buffer::U8(bytes) = buf else {
+        return Err(ModelError::Instantiate(format!(
+            "value reference {}: a String variable fills a u8 buffer",
+            slot.vr
+        )));
+    };
+    fmu.get_string(slot.vr, bytes)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -430,13 +468,13 @@ impl FmuInstance {
     fn set_all(&mut self, tunables: bool, io: &StepIo) -> Result<(), ModelError> {
         let fmu = self.fmu.as_mut().ok_or(terminated("set"))?;
         let (slots, bufs) = if tunables {
-            (&self.tunables, &io.tunables)
+            (&mut self.tunables, &io.tunables)
         } else {
-            (&self.inputs, &io.inputs)
+            (&mut self.inputs, &io.inputs)
         };
-        for (s, b) in slots.iter().zip(bufs) {
+        for (s, b) in slots.iter_mut().zip(bufs) {
             same_shape(s, b)?;
-            fmu.set(s.vr, b)?;
+            set_slot(fmu, s, b)?;
         }
         Ok(())
     }
@@ -450,7 +488,7 @@ impl FmuInstance {
         };
         for (s, b) in slots.iter().zip(bufs.iter_mut()) {
             same_shape(s, b)?;
-            fmu.get(s.vr, b)?;
+            get_slot(fmu, s, b)?;
         }
         Ok(())
     }

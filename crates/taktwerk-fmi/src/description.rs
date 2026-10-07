@@ -25,7 +25,12 @@ pub(crate) struct FmiVariable {
     pub shape: Vec<Dim>,
     pub unit: Option<String>,
     pub description: Option<String>,
+    /// An FMI 3 `String`: a `u8` buffer of literal capacity, exchanged NUL-terminated.
+    pub text: bool,
 }
+
+/// Capacity of a `String` variable without a `taktwerk` annotation, bytes (NUL included).
+pub const DEFAULT_TEXT_CAPACITY: usize = 256;
 
 /// A structural parameter; it becomes a dimension of the interface.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -214,7 +219,8 @@ fn v3_type(tag: &str) -> Result<Option<ScalarType>, ()> {
         "UInt16" => ScalarType::U16,
         "UInt8" => ScalarType::U8,
         "Boolean" => ScalarType::Bool,
-        "String" | "Binary" | "Clock" => return Err(()),
+        "Binary" | "Clock" => return Err(()),
+        "String" => return Ok(None),
         _ => return Ok(None),
     }))
 }
@@ -271,15 +277,30 @@ fn parse_v3(vars: &[Node<'_, '_>], units: &BTreeMap<String, String>) -> Result<V
         let Some(causality) = exposed(causality, var.attribute("variability")) else {
             continue;
         };
+        let text = tag == "String";
         let ty = match v3_type(tag) {
             Ok(Some(ty)) => ty,
+            Ok(None) if text => ScalarType::U8,
             Ok(None) => continue,
             Err(()) => {
                 return Err(format!(
-                    "{name}: FMI 3 type {tag} is not supported (only numeric and Boolean)"
+                    "{name}: FMI 3 type {tag} is not supported (only numeric, Boolean and String)"
                 ));
             }
         };
+        if text {
+            variables.push(FmiVariable {
+                name: name.to_owned(),
+                vr: value_reference(*var, name)?,
+                causality,
+                ty,
+                shape: vec![Dim::Literal(text_capacity(*var))],
+                unit: None,
+                description: var.attribute("description").map(str::to_owned),
+                text: true,
+            });
+            continue;
+        }
         let mut shape = Vec::new();
         for dim in var.children().filter(|c| c.has_tag_name("Dimension")) {
             if let Some(start) = parse_usize(dim, "start") {
@@ -300,9 +321,23 @@ fn parse_v3(vars: &[Node<'_, '_>], units: &BTreeMap<String, String>) -> Result<V
             shape,
             unit: unit_of(*var, units),
             description: var.attribute("description").map(str::to_owned),
+            text: false,
         });
     }
     Ok((variables, structural))
+}
+
+/// `<Annotations><Annotation type="taktwerk"><text capacity="N"/></Annotation></Annotations>`,
+/// else the default.
+fn text_capacity(var: Node<'_, '_>) -> usize {
+    child(var, "Annotations")
+        .into_iter()
+        .flat_map(|a| a.children().filter(|n| n.has_tag_name("Annotation")))
+        .filter(|a| a.attribute("type") == Some("taktwerk"))
+        .filter_map(|a| child(a, "text"))
+        .find_map(|t| parse_usize(t, "capacity"))
+        .filter(|n| *n > 0)
+        .unwrap_or(DEFAULT_TEXT_CAPACITY)
 }
 
 fn parse_v2(
@@ -338,6 +373,7 @@ fn parse_v2(
             shape: Vec::new(),
             unit: unit_of(typed, units),
             description: var.attribute("description").map(str::to_owned),
+            text: false,
         });
     }
     Ok(variables)
@@ -397,12 +433,28 @@ mod tests {
     }
 
     #[test]
-    fn refuses_exposed_string() {
+    fn strings_are_byte_buffers_with_a_capacity() {
         let xml = r#"<fmiModelDescription fmiVersion="3.0" modelName="M" instantiationToken="t">
             <CoSimulation modelIdentifier="m"/><ModelVariables>
-            <String name="s" valueReference="1" causality="input"/></ModelVariables>
-            </fmiModelDescription>"#;
-        assert!(parse(xml).unwrap_err().contains("String"));
+            <String name="s" valueReference="1" causality="input"/>
+            <String name="t" valueReference="2" causality="parameter" variability="fixed">
+              <Start value=""/>
+              <Annotations><Annotation type="taktwerk"><text capacity="16"/></Annotation></Annotations>
+            </String>
+            <Binary name="b" valueReference="3" causality="output"/>
+            </ModelVariables></fmiModelDescription>"#;
+        assert!(parse(xml).unwrap_err().contains("Binary"));
+        let md = parse(&xml.replace(
+            r#"<Binary name="b" valueReference="3" causality="output"/>"#,
+            "",
+        ))
+        .unwrap();
+        let i = md.interface();
+        assert_eq!(i.variables[0].ty, ScalarType::U8);
+        assert_eq!(i.variables[0].shape, [Dim::Literal(DEFAULT_TEXT_CAPACITY)]);
+        assert_eq!(i.variables[1].shape, [Dim::Literal(16)]);
+        assert_eq!(i.variables[1].causality, Causality::Parameter);
+        assert!(md.variables[1].text);
     }
 
     #[test]

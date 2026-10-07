@@ -234,9 +234,65 @@ fn state_space_structural_parameters_at_two_sizes() {
 }
 
 #[test]
-fn refuses_string_variables() {
+fn refuses_binary_variables() {
     let err = FmuAdapter::load(fmus().join("fmi3/Feedthrough")).unwrap_err();
-    assert!(err.to_string().contains("String"), "{err}");
+    assert!(err.to_string().contains("Binary"), "{err}");
+}
+
+/// Feedthrough without its Binary variables: the String input echoes to the String output.
+#[test]
+fn strings_travel_as_byte_buffers() {
+    let tmp = tempfile::tempdir().unwrap();
+    copy_fmu(&fmus().join("fmi3/Feedthrough"), tmp.path(), false);
+    let md = tmp.path().join("modelDescription.xml");
+    let xml = fs::read_to_string(&md).unwrap();
+    let start = xml.find("<Binary name=\"Binary_input\"").unwrap();
+    let end = xml[start..].find("causality=\"output\"/>").unwrap() + start;
+    let end = end + xml[end..].find("/>").unwrap() + 2;
+    fs::write(&md, format!("{}{}", &xml[..start], &xml[end..])).unwrap();
+    let adapter = FmuAdapter::load(tmp.path()).unwrap();
+    let iface = adapter.interface();
+    let input = iface
+        .variables
+        .iter()
+        .find(|v| v.name == "String_input")
+        .unwrap();
+    assert_eq!(input.ty, taktwerk_core::value::ScalarType::U8);
+    assert_eq!(
+        input.shape,
+        [Dim::Literal(taktwerk_fmi::DEFAULT_TEXT_CAPACITY)]
+    );
+    let mut inst = adapter
+        .instantiate(&spec("s", BoundDims::new(), ParamValues::new(), 0.1))
+        .unwrap();
+    let mut io = io_for(iface, &BoundDims::new());
+    let input_index = iface
+        .variables
+        .iter()
+        .filter(|v| v.causality == Causality::Input)
+        .position(|v| v.name == "String_input")
+        .unwrap();
+    let output_index = iface
+        .variables
+        .iter()
+        .filter(|v| v.causality == Causality::Output)
+        .position(|v| v.name == "String_output")
+        .unwrap();
+    // The enumeration input accepts only its literals; the others start at zero.
+    let enumeration = iface
+        .variables
+        .iter()
+        .filter(|v| v.causality == Causality::Input)
+        .position(|v| v.name == "Enumeration_input")
+        .unwrap();
+    io.inputs[enumeration] = Buffer::I64(vec![1]);
+    let mut text = b"hello fmu".to_vec();
+    text.resize(taktwerk_fmi::DEFAULT_TEXT_CAPACITY, 0);
+    io.inputs[input_index] = Buffer::U8(text.clone());
+    inst.init(0.0, &mut io).unwrap();
+    inst.step(0.0, &mut io).unwrap();
+    assert_eq!(io.outputs[output_index], Buffer::U8(text));
+    inst.terminate();
 }
 
 #[test]

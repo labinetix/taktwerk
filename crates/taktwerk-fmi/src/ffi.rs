@@ -141,6 +141,8 @@ api!(Fmi3Api {
     get_u8: Fmi3Get<u8> = "fmi3GetUInt8",
     set_bool: Fmi3Set<bool> = "fmi3SetBoolean",
     get_bool: Fmi3Get<bool> = "fmi3GetBoolean",
+    set_string: Fmi3Set<*const c_char> = "fmi3SetString",
+    get_string: Fmi3Get<*const c_char> = "fmi3GetString",
 });
 
 api!(Fmi2Api {
@@ -583,6 +585,62 @@ impl Instance {
                 }
             }
         }
+    }
+}
+
+impl Instance {
+    /// FMI 3 only: write the text in `bytes` (up to its first NUL) to String variable `vr`.
+    /// `scratch` must hold `bytes.len() + 1`; it is not grown, so nothing allocates.
+    pub fn set_string(
+        &mut self,
+        vr: u32,
+        bytes: &[u8],
+        scratch: &mut Vec<u8>,
+    ) -> Result<(), ModelError> {
+        let Api::V3(api) = &self.lib.api else {
+            return Err(missing("fmi3SetString"));
+        };
+        let f = api.set_string.ok_or_else(|| missing("fmi3SetString"))?;
+        let end = bytes.iter().position(|b| *b == 0).unwrap_or(bytes.len());
+        if scratch.capacity() < end + 1 {
+            return Err(ModelError::Instantiate(format!(
+                "value reference {vr}: text scratch too small"
+            )));
+        }
+        scratch.clear();
+        scratch.extend_from_slice(&bytes[..end]);
+        scratch.push(0);
+        let text: *const c_char = scratch.as_ptr().cast();
+        let vrp = &raw const vr;
+        // SAFETY: one value reference, one NUL-terminated string that lives for the call.
+        check("fmi3SetString", unsafe {
+            f(self.h(), vrp, 1, &raw const text, 1)
+        })
+    }
+
+    /// FMI 3 only: read String variable `vr` into `out`, truncated to its length and zero
+    /// padded. No allocation.
+    pub fn get_string(&mut self, vr: u32, out: &mut [u8]) -> Result<(), ModelError> {
+        let Api::V3(api) = &self.lib.api else {
+            return Err(missing("fmi3GetString"));
+        };
+        let f = api.get_string.ok_or_else(|| missing("fmi3GetString"))?;
+        let mut text: *const c_char = ptr::null();
+        let vrp = &raw const vr;
+        // SAFETY: one value reference, room for one pointer; the FMU keeps the string valid
+        // until the next call.
+        check("fmi3GetString", unsafe {
+            f(self.h(), vrp, 1, &raw mut text, 1)
+        })?;
+        out.fill(0);
+        if text.is_null() {
+            return Ok(());
+        }
+        // SAFETY: the FMU returned a NUL-terminated string valid until the next call.
+        let bytes = unsafe { CStr::from_ptr(text) }.to_bytes();
+        let n = bytes.len().min(out.len());
+        out[..n].copy_from_slice(&bytes[..n]);
+        Ok(())
     }
 }
 
