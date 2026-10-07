@@ -522,6 +522,8 @@ fn convert_params(
 /// A scalar takes a number or boolean. An array takes nested arrays, one level per dimension
 /// with the first index outermost, stored in `layout`; or one flat array of the full length,
 /// taken as already stored in `layout`. Integers convert to floats; floats never to integers.
+/// A one-dimensional `u8` variable also takes a string: its bytes, NUL-padded to the length,
+/// which must leave room for the terminating NUL.
 ///
 /// # Errors
 /// A description of the first element that does not fit.
@@ -531,6 +533,18 @@ pub fn param_buffer(
     shape: &[usize],
     layout: Layout,
 ) -> Result<Buffer, String> {
+    if let (toml::Value::String(text), ScalarType::U8, [capacity]) = (value, ty, shape) {
+        let bytes = text.as_bytes();
+        if bytes.len() >= *capacity {
+            return Err(format!(
+                "text of {} bytes does not fit {capacity} with its terminating NUL",
+                bytes.len()
+            ));
+        }
+        let mut out = bytes.to_vec();
+        out.resize(*capacity, 0);
+        return Ok(Buffer::U8(out));
+    }
     let mut nums = Vec::new();
     let nested = collect(value, shape, &mut nums)?;
     if nested && layout == Layout::ColumnMajor && shape.len() > 1 {
@@ -1194,6 +1208,19 @@ dims = { n = 3 }
             Buffer::F32(vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
         );
         assert!(param_buffer(&flat, ScalarType::F32, &[2], Layout::RowMajor).is_err());
+
+        let text: toml::Value = "x = \"tank 3\""
+            .parse::<toml::Table>()
+            .unwrap()
+            .remove("x")
+            .unwrap();
+        assert_eq!(
+            param_buffer(&text, ScalarType::U8, &[8], Layout::RowMajor).unwrap(),
+            Buffer::U8(b"tank 3\0\0".to_vec())
+        );
+        assert!(param_buffer(&text, ScalarType::U8, &[6], Layout::RowMajor).is_err());
+        assert!(param_buffer(&text, ScalarType::U8, &[], Layout::RowMajor).is_err());
+        assert!(param_buffer(&text, ScalarType::I8, &[8], Layout::RowMajor).is_err());
     }
 
     #[tokio::test]
