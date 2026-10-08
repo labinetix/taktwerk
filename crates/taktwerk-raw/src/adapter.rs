@@ -560,11 +560,11 @@ impl RawInstance {
         let plan = Arc::clone(&self.plan);
         for (s, image) in plan.structs.iter().zip(&mut self.images) {
             for (member, role) in s.layout.members().iter().zip(&s.members) {
-                if let MemberRole::Value(v) = *role {
-                    if plan.outputs.contains(&v) {
-                        let slot = image.bytes_mut().get(member.range()).ok_or(Mismatch)?;
-                        self.arrays[v].set_first_bytes(slot)?;
-                    }
+                if let MemberRole::Value(v) = *role
+                    && plan.outputs.contains(&v)
+                {
+                    let slot = image.bytes_mut().get(member.range()).ok_or(Mismatch)?;
+                    self.arrays[v].set_first_bytes(slot)?;
                 }
             }
         }

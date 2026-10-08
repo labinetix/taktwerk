@@ -646,18 +646,18 @@ impl Descriptor {
             if d.name.is_empty() {
                 return fail("a dimension has an empty name".to_owned());
             }
-            if let (Some(min), Some(max)) = (d.min, d.max) {
-                if min > max {
-                    return fail(format!("dimension {}: min {min} > max {max}", d.name));
-                }
+            if let (Some(min), Some(max)) = (d.min, d.max)
+                && min > max
+            {
+                return fail(format!("dimension {}: min {min} > max {max}", d.name));
             }
-            if let Some(default) = d.default {
-                if d.min.is_some_and(|m| default < m) || d.max.is_some_and(|m| default > m) {
-                    return fail(format!(
-                        "dimension {}: default {default} out of range",
-                        d.name
-                    ));
-                }
+            if let Some(default) = d.default
+                && (d.min.is_some_and(|m| default < m) || d.max.is_some_and(|m| default > m))
+            {
+                return fail(format!(
+                    "dimension {}: default {default} out of range",
+                    d.name
+                ));
             }
         }
         let vars: BTreeMap<&str, usize> = iface
@@ -674,10 +674,10 @@ impl Descriptor {
                 return fail("a variable has an empty name".to_owned());
             }
             for dim in &v.shape {
-                if let Dim::Symbol(s) = dim {
-                    if !dims.contains_key(s.as_str()) {
-                        return fail(format!("variable {}: unknown dimension {s}", v.name));
-                    }
+                if let Dim::Symbol(s) = dim
+                    && !dims.contains_key(s.as_str())
+                {
+                    return fail(format!("variable {}: unknown dimension {s}", v.name));
                 }
             }
         }

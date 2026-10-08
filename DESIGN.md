@@ -91,6 +91,11 @@ signals over OPC UA.
 - **A user and developer guide** (mdBook) is published to GitHub Pages at
   `labinetix.github.io/taktwerk` from `docs/`; it holds the conventions a model must follow.
 
+## Distribution
+
+- **Crates on crates.io;** the CLI also ships as a PyPI wheel (maturin, binary only) from v0.2.0.
+  A Python API (offline runs, signals as arrays, never on the cycle path) waits for a user.
+
 ## Configuration and surfaces
 
 - **One TOML project file per engine** is the source of truth: models, schedule, signals,

@@ -353,10 +353,10 @@ impl OpcUaClient {
     }
 
     async fn ensure_conn(&mut self) -> Result<&Conn, ConnectorError> {
-        if self.conn.as_ref().is_some_and(|c| c.events.is_finished()) {
-            if let Some(old) = self.conn.take() {
-                old.close().await;
-            }
+        if self.conn.as_ref().is_some_and(|c| c.events.is_finished())
+            && let Some(old) = self.conn.take()
+        {
+            old.close().await;
         }
         if self.conn.is_none() {
             self.conn = Some(self.connect().await?);
@@ -413,10 +413,9 @@ impl OpcUaClient {
         };
 
         let mut plan = Plan::default();
-        for ((spec, id, node, label), attrs) in targets.into_iter().zip(results.chunks_exact(5)) {
-            let [dt, rank, dims, access, value] = attrs else {
-                continue;
-            };
+        for ((spec, id, node, label), attrs) in targets.into_iter().zip(results.as_chunks::<5>().0)
+        {
+            let [dt, rank, dims, access, value] = attrs;
             match check_one(&label, spec, dt, rank, dims, access, value) {
                 Err(problem) => problems.push(problem),
                 Ok(scalar) => {

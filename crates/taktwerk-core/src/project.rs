@@ -215,13 +215,13 @@ impl Project {
                 "engine.system_prefix is empty".into(),
             ));
         }
-        if let Some(rt) = &self.engine.realtime {
-            if !(1..=99).contains(&rt.priority) {
-                return Err(ProjectError::Invalid(format!(
-                    "engine.realtime.priority must be 1..=99, got {}",
-                    rt.priority
-                )));
-            }
+        if let Some(rt) = &self.engine.realtime
+            && !(1..=99).contains(&rt.priority)
+        {
+            return Err(ProjectError::Invalid(format!(
+                "engine.realtime.priority must be 1..=99, got {}",
+                rt.priority
+            )));
         }
         let mut ids = BTreeSet::new();
         for inst in &self.instances {

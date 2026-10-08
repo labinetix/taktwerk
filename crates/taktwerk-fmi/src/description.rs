@@ -262,10 +262,10 @@ fn parse_v3(vars: &[Node<'_, '_>], units: &BTreeMap<String, String>) -> Result<V
                 min: parse_usize(*var, "min"),
                 max: parse_usize(*var, "max"),
             });
-        } else if variability == Some("constant") {
-            if let Some(start) = parse_usize(*var, "start") {
-                dim_refs.insert(vr, Dim::Literal(start));
-            }
+        } else if variability == Some("constant")
+            && let Some(start) = parse_usize(*var, "start")
+        {
+            dim_refs.insert(vr, Dim::Literal(start));
         }
     }
 

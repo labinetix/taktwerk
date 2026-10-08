@@ -319,13 +319,13 @@ fn check_interface(model: &str, interface: &ModelInterface) -> Result<(), PlanEr
             return Err(err(format!("variable `{}` declared twice", v.name)));
         }
         for dim in &v.shape {
-            if let Dim::Symbol(s) = dim {
-                if !interface.dimensions.iter().any(|d| &d.name == s) {
-                    return Err(err(format!(
-                        "variable `{}` uses undeclared dimension `{s}`",
-                        v.name
-                    )));
-                }
+            if let Dim::Symbol(s) = dim
+                && !interface.dimensions.iter().any(|d| &d.name == s)
+            {
+                return Err(err(format!(
+                    "variable `{}` uses undeclared dimension `{s}`",
+                    v.name
+                )));
             }
         }
     }

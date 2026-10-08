@@ -537,14 +537,13 @@ impl ModelInstance for FmuInstance {
     }
 
     fn terminate(&mut self) {
-        if let Some(mut fmu) = self.fmu.take() {
-            if self.state == State::Running {
-                if let Err(e) = fmu.terminate() {
-                    tracing::warn!("terminate: {e}");
-                }
-            }
-            // Dropping `fmu` frees the instance.
+        if let Some(mut fmu) = self.fmu.take()
+            && self.state == State::Running
+            && let Err(e) = fmu.terminate()
+        {
+            tracing::warn!("terminate: {e}");
         }
+        // Dropping `fmu` frees the instance.
         self.state = State::Done;
     }
 }

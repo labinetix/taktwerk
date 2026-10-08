@@ -2,14 +2,13 @@
 
 ## Install
 
-taktwerk is not released yet; build it from a checkout. It needs a Rust toolchain (1.85 or newer)
-and a C compiler for the examples.
+taktwerk needs a Rust toolchain (1.88 or newer); the examples also need a C compiler.
 
 ```sh
-git clone https://github.com/labinetix/taktwerk
-cd taktwerk
-cargo install --path crates/taktwerk     # installs `taktwerk` into ~/.cargo/bin
+cargo install taktwerk                   # installs `taktwerk` into ~/.cargo/bin
 ```
+
+From a checkout: `cargo install --path crates/taktwerk`.
 
 For a target other than the build host, see [cross-building](production.md#cross-building).
 

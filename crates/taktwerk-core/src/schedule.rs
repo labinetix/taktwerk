@@ -493,10 +493,10 @@ impl Cycle {
             // A tunable nobody wrote shows the model's value, and a later change of another
             // tunable delivers that value rather than a zero.
             for (k, (id, seq)) in slot.tunables.iter_mut().enumerate() {
-                if *seq == 0 {
-                    if let Some(s) = self.image.seed(*id, &slot.io.tunables[k], now)? {
-                        *seq = s;
-                    }
+                if *seq == 0
+                    && let Some(s) = self.image.seed(*id, &slot.io.tunables[k], now)?
+                {
+                    *seq = s;
                 }
             }
         }
@@ -510,7 +510,11 @@ impl Cycle {
         let tick = self.tick;
         let time = self.start_time + tick as f64 * self.tick_s;
         let mut stale = false;
-        for slot in self.slots.iter_mut().filter(|s| tick % s.every == 0) {
+        for slot in self
+            .slots
+            .iter_mut()
+            .filter(|s| tick.is_multiple_of(s.every))
+        {
             for &(k, id) in &slot.external {
                 match self.image.fetch(id, &mut slot.io.inputs[k], now) {
                     Ok(_) => {}
@@ -537,7 +541,7 @@ impl Cycle {
         }
         for i in 0..self.slots.len() {
             let slot = &mut self.slots[i];
-            if tick % slot.every != 0 {
+            if !tick.is_multiple_of(slot.every) {
                 continue;
             }
             for &(k, id) in &slot.wired {

@@ -905,12 +905,12 @@ fn propose_single_entry(
         }
         if let Some(s) = header.structs.iter().find(|s| &s.name == st) {
             for m in &s.members {
-                if let (Some(n), ParsedType::Scalar(t)) = (&m.name, &m.ty) {
-                    if t.is_integer() && !looks_like_flag(n) {
-                        if let Some(dim) = reported_dim(n) {
-                            b.dims.entry(dim).or_insert(*t);
-                        }
-                    }
+                if let (Some(n), ParsedType::Scalar(t)) = (&m.name, &m.ty)
+                    && t.is_integer()
+                    && !looks_like_flag(n)
+                    && let Some(dim) = reported_dim(n)
+                {
+                    b.dims.entry(dim).or_insert(*t);
                 }
             }
         }
@@ -1382,26 +1382,28 @@ impl<'h> Builder<'h> {
                 });
                 continue;
             }
-            if t.pointer && t.is_integer() && struct_hint == Some(Causality::Output) {
-                if let Some(dim) = reported_dim(&mname) {
-                    self.notes.push(format!(
-                        "struct {name}: {mname} looks like a length the library reports: \
+            if t.pointer
+                && t.is_integer()
+                && struct_hint == Some(Causality::Output)
+                && let Some(dim) = reported_dim(&mname)
+            {
+                self.notes.push(format!(
+                    "struct {name}: {mname} looks like a length the library reports: \
                          dim = {dim}, reported = true (guessed); set the dimension's max, its \
                          buffers are allocated at that size"
-                    ));
-                    self.dims.entry(dim.clone()).or_insert(*t);
-                    members.push(Member {
-                        name: mname,
-                        ty: *t,
-                        variable: None,
-                        dim: Some(dim),
-                        builtin: None,
-                        const_: None,
-                        phase: None,
-                        reported: true,
-                    });
-                    continue;
-                }
+                ));
+                self.dims.entry(dim.clone()).or_insert(*t);
+                members.push(Member {
+                    name: mname,
+                    ty: *t,
+                    variable: None,
+                    dim: Some(dim),
+                    builtin: None,
+                    const_: None,
+                    phase: None,
+                    reported: true,
+                });
+                continue;
             }
             let member = if t.pointer {
                 if base == ScalarType::U8 {
