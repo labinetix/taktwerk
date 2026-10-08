@@ -1,0 +1,25 @@
+# A low-pass filter bank from a C library in the recommended shape. Its descriptor is read from
+# the header without review (`taktwerk import-header lowpass.h --shape -o taktwerk-model.toml`).
+# Build the library first:
+#   examples/raw-filter-bank/build.sh
+# Then, from the repository root:
+#   taktwerk run examples/raw-filter-bank/project.toml
+#   taktwerk tui opc.tcp://127.0.0.1:4840      # edit filt.u and filt.gain, watch filt.y
+
+[engine]
+tick_ms = 10.0
+
+[models.lowpass]
+kind = "raw"
+path = "."
+
+[[instance]]
+id = "filt"
+model = "lowpass"
+dims = { n = 3 }
+parameters = { tau = [0.1, 0.5, 1.0], y0 = [0.0, 0.0, 0.0], gain = 1.0 }
+
+[[connector]]
+id = "ua"
+kind = "opcua-server"
+endpoint = "opc.tcp://127.0.0.1:4840"

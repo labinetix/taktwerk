@@ -270,9 +270,12 @@
 //! # Header import
 //!
 //! [`import_header`] parses a C header (flat `typedef struct` blocks and function prototypes
-//! over the admitted types) and proposes a descriptor with `confirmed = false`: function roles,
-//! dimension members and pointer→length relations are guessed by name and listed in the
-//! proposal's notes. The developer edits the proposal and sets `confirmed = true`.
+//! over the admitted types). A header in the [recommended shape](shape) is read completely and
+//! comes out with `confirmed = true`. Any other gets a proposal with `confirmed = false`:
+//! function roles, dimension members and pointer→length relations are guessed by name and
+//! listed in the proposal's notes, after every deviation from the shape. The developer edits
+//! the proposal and sets `confirmed = true`. [`ImportOptions::require_shape`] makes a deviation
+//! an error instead.
 //!
 //! [`import_header_with`] takes what the header cannot say: [`ImportOptions::entry`] names a
 //! single entry point and [`ImportOptions::arg_structs`] which struct each opaque `char *` or
@@ -306,6 +309,7 @@ pub mod descriptor;
 pub mod fmu;
 pub mod import;
 pub mod layout;
+pub mod shape;
 
 mod ffi;
 

@@ -6,10 +6,12 @@
 //! skipped, macros are never expanded, and anything the grammar does not cover is skipped with
 //! a note rather than guessed at.
 //!
-//! The proposal is heuristic: function roles, dimension members and pointer→length relations
-//! are guessed by name. Every guess is listed in [`Proposal::notes`] and the descriptor is
-//! written with `confirmed = false`, which [`Descriptor::validate`] refuses until the developer
-//! has checked it.
+//! A header in the recommended shape (see [`crate::shape`]) is read without guessing: the
+//! descriptor comes out with `confirmed = true`. Any other header gets a heuristic proposal:
+//! function roles, dimension members and pointer→length relations are guessed by name. Every
+//! guess, and every way the header deviates from the recommended shape, is listed in
+//! [`Proposal::notes`] and the descriptor is written with `confirmed = false`, which
+//! [`Descriptor::validate`] refuses until the developer has checked it.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
@@ -77,6 +79,8 @@ pub struct Slot {
     pub is_const: bool,
     /// Declaration line.
     pub line: usize,
+    /// Text of a comment that follows a struct member's `;` on the same line, trimmed.
+    pub comment: Option<String>,
 }
 
 /// A type the grammar resolved.
@@ -169,10 +173,22 @@ struct Lexed {
     line: usize,
 }
 
-/// Tokens with line numbers; comments and literals dropped.
-fn lex(file: &str, text: &str) -> Result<Vec<Lexed>, ImportError> {
+/// A comment, kept beside the tokens.
+#[derive(Debug, Clone)]
+struct Comment {
+    /// Number of tokens before it.
+    after: usize,
+    /// Line it starts on.
+    line: usize,
+    /// Its text without the delimiters, trimmed.
+    text: String,
+}
+
+/// Tokens with line numbers, and the comments beside them; literals dropped.
+fn lex(file: &str, text: &str) -> Result<(Vec<Lexed>, Vec<Comment>), ImportError> {
     let chars: Vec<char> = text.chars().collect();
     let mut tokens = Vec::new();
+    let mut comments = Vec::new();
     let (mut i, mut line, mut fresh_line) = (0_usize, 1_usize, true);
     while i < chars.len() {
         let c = chars[i];
@@ -189,6 +205,7 @@ fn lex(file: &str, text: &str) -> Result<Vec<Lexed>, ImportError> {
         if c == '/' && chars.get(i + 1) == Some(&'*') {
             let opened = line;
             i += 2;
+            let start = i;
             loop {
                 match chars.get(i) {
                     None => {
@@ -198,6 +215,11 @@ fn lex(file: &str, text: &str) -> Result<Vec<Lexed>, ImportError> {
                     }
                     Some('\n') => line += 1,
                     Some('*') if chars.get(i + 1) == Some(&'/') => {
+                        comments.push(Comment {
+                            after: tokens.len(),
+                            line: opened,
+                            text: chars[start..i].iter().collect::<String>().trim().to_owned(),
+                        });
                         i += 2;
                         break;
                     }
@@ -208,9 +230,15 @@ fn lex(file: &str, text: &str) -> Result<Vec<Lexed>, ImportError> {
             continue;
         }
         if c == '/' && chars.get(i + 1) == Some(&'/') {
+            let start = i + 2;
             while i < chars.len() && chars[i] != '\n' {
                 i += 1;
             }
+            comments.push(Comment {
+                after: tokens.len(),
+                line,
+                text: chars[start..i].iter().collect::<String>().trim().to_owned(),
+            });
             continue;
         }
         if c == '#' && fresh_line {
@@ -264,7 +292,7 @@ fn lex(file: &str, text: &str) -> Result<Vec<Lexed>, ImportError> {
         });
         i += 1;
     }
-    Ok(tokens)
+    Ok((tokens, comments))
 }
 
 // ==========================================================================
@@ -284,6 +312,7 @@ struct RawSlot {
     name: Option<String>,
     ty: RawType,
     line: usize,
+    comment: Option<String>,
 }
 
 /// Parse header text. `file` names it in messages.
@@ -291,7 +320,7 @@ struct RawSlot {
 /// # Errors
 /// An unterminated comment or literal, or a header without any struct or function.
 pub fn parse_header(text: &str, file: &str) -> Result<Header, ImportError> {
-    let tokens = lex(file, text)?;
+    let (tokens, comments) = lex(file, text)?;
     let mut raw = RawHeader::default();
     let mut i = 0_usize;
     while i < tokens.len() {
@@ -333,7 +362,7 @@ pub fn parse_header(text: &str, file: &str) -> Result<Header, ImportError> {
                         })
                     )
                 {
-                    i = parse_struct(file, &tokens, j + 1, &mut raw);
+                    i = parse_struct(file, &tokens, &comments, j + 1, &mut raw);
                 } else {
                     i = skip_statement(&tokens, i);
                 }
@@ -365,6 +394,7 @@ pub fn parse_header(text: &str, file: &str) -> Result<Header, ImportError> {
         ty: s.ty.resolve(&names),
         is_const: s.ty.is_const,
         line: s.line,
+        comment: s.comment.clone(),
     };
     Ok(Header {
         structs: raw
@@ -411,7 +441,13 @@ fn skip_statement(tokens: &[Lexed], mut i: usize) -> usize {
 }
 
 /// Parse a struct body from just after `{`; returns the index after the closing `;`.
-fn parse_struct(file: &str, tokens: &[Lexed], start: usize, raw: &mut RawHeader) -> usize {
+fn parse_struct(
+    file: &str,
+    tokens: &[Lexed],
+    comments: &[Comment],
+    start: usize,
+    raw: &mut RawHeader,
+) -> usize {
     let line = tokens.get(start).map_or(0, |t| t.line);
     let mut members = Vec::new();
     let mut i = start;
@@ -428,7 +464,16 @@ fn parse_struct(file: &str, tokens: &[Lexed], start: usize, raw: &mut RawHeader)
         }
         let end = statement_end(tokens, i);
         match parse_slot(&tokens[i..end]) {
-            Some(slot) if slot.name.is_some() => members.push(slot),
+            Some(mut slot) if slot.name.is_some() => {
+                // A comment right after the `;`, on its line, belongs to the member.
+                slot.comment = tokens.get(end).and_then(|semi| {
+                    comments
+                        .iter()
+                        .find(|c| c.after == end + 1 && c.line == semi.line)
+                        .map(|c| c.text.clone())
+                });
+                members.push(slot);
+            }
             _ => {
                 raw.notes.push(format!(
                     "{file}:{}: unreadable struct member; the struct is skipped",
@@ -534,6 +579,7 @@ fn parse_slot(tokens: &[Lexed]) -> Option<RawSlot> {
             array,
         },
         line,
+        comment: None,
     })
 }
 
@@ -624,10 +670,12 @@ fn parse_declaration(file: &str, tokens: &[Lexed], start: usize, raw: &mut RawHe
 /// A proposed descriptor and the guesses behind it.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Proposal {
-    /// The descriptor, `confirmed = false`.
+    /// The descriptor: `confirmed = true` when read from the recommended shape, else `false`.
     pub descriptor: Descriptor,
-    /// Every guess and every skipped declaration.
+    /// Every guess, every deviation from the recommended shape and every skipped declaration.
     pub notes: Vec<String>,
+    /// Read from the recommended shape, confirmed.
+    pub from_shape: bool,
 }
 
 impl Proposal {
@@ -636,10 +684,13 @@ impl Proposal {
     /// # Errors
     /// Serialization failure (does not happen for a proposal).
     pub fn to_toml(&self) -> Result<String, ImportError> {
-        let mut out = String::from(
+        let mut out = String::from(if self.from_shape {
+            "# Read by `taktwerk import-header` from the recommended shape of the header: every\n\
+             # role, shape and bound is stated there, so the descriptor is confirmed as read.\n"
+        } else {
             "# Proposed by `taktwerk import-header`. Review every note, fix the descriptor and\n\
-             # set `abi.confirmed = true`; an unconfirmed descriptor is refused at load.\n",
-        );
+             # set `abi.confirmed = true`; an unconfirmed descriptor is refused at load.\n"
+        });
         for note in &self.notes {
             out.push_str("# - ");
             out.push_str(note);
@@ -665,6 +716,9 @@ pub struct ImportOptions {
     /// `(parameter, struct)`: an opaque `char *` or `void *` parameter that is really a pointer
     /// to this typedef struct of the header.
     pub arg_structs: Vec<(String, String)>,
+    /// Require the recommended shape: a header that deviates from it is an error listing every
+    /// deviation, instead of a heuristic proposal.
+    pub require_shape: bool,
 }
 
 /// Read and parse `path`, then [`propose`] with the file stem as model name.
@@ -708,9 +762,38 @@ pub fn propose_with(
     name: &str,
     options: &ImportOptions,
 ) -> Result<Proposal, ImportError> {
+    let explicit = options.entry.is_some() || !options.arg_structs.is_empty();
+    if options.require_shape && explicit {
+        return Err(ImportError(
+            "the recommended shape takes no entry point and no argument structs".to_owned(),
+        ));
+    }
+    let mut notes = header.notes.clone();
+    if !explicit {
+        match crate::shape::read(header, name) {
+            Ok(descriptor) => {
+                return Ok(Proposal {
+                    descriptor,
+                    notes,
+                    from_shape: true,
+                });
+            }
+            Err(deviations) if options.require_shape => {
+                return Err(ImportError(format!(
+                    "not the recommended shape:\n  - {}",
+                    deviations.join("\n  - ")
+                )));
+            }
+            Err(deviations) => notes.extend(
+                deviations
+                    .into_iter()
+                    .map(|d| format!("not the recommended shape: {d}")),
+            ),
+        }
+    }
     let mut b = Builder {
         header: Some(header),
-        notes: header.notes.clone(),
+        notes,
         ..Builder::default()
     };
     for (param, st) in &options.arg_structs {
@@ -910,6 +993,7 @@ impl Builder<'_> {
         Proposal {
             descriptor,
             notes: b.notes,
+            from_shape: false,
         }
     }
 }

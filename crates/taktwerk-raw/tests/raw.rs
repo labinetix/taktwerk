@@ -432,6 +432,7 @@ fn the_header_import_proposes_the_single_entry_descriptor() {
             ("in".to_owned(), "blob_input".to_owned()),
             ("out".to_owned(), "blob_output".to_owned()),
         ],
+        ..ImportOptions::default()
     };
     let proposal =
         import_header_with(Path::new(&format!("{FIXTURES}/blob_model.h")), &options).unwrap();
@@ -499,6 +500,90 @@ fn the_header_import_proposes_the_single_entry_descriptor() {
     let bad = ImportOptions {
         entry: Some("blob_call".to_owned()),
         arg_structs: vec![("in".to_owned(), "no_such".to_owned())],
+        ..ImportOptions::default()
     };
     assert!(import_header_with(Path::new(&format!("{FIXTURES}/blob_model.h")), &bad).is_err());
+}
+
+// ==========================================================================
+// The recommended shape: `examples/raw-filter-bank`, imported without review.
+// ==========================================================================
+
+const FILTER_BANK: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../examples/raw-filter-bank"
+);
+
+#[test]
+fn a_header_in_the_recommended_shape_imports_confirmed_loads_and_steps() {
+    let proposal = import_header(Path::new(&format!("{FILTER_BANK}/lowpass.h"))).unwrap();
+    assert!(proposal.from_shape, "{:?}", proposal.notes);
+    assert!(proposal.descriptor.abi.confirmed);
+    let text = proposal.to_toml().unwrap();
+    assert_eq!(
+        text,
+        std::fs::read_to_string(format!("{FILTER_BANK}/taktwerk-model.toml")).unwrap(),
+        "the example's descriptor is the import of its header"
+    );
+
+    // Package: the imported descriptor and the example's library, built here.
+    let dir = tempfile::tempdir().unwrap();
+    let lib = dir.path().join("lib").join(taktwerk_raw::arch_dir());
+    std::fs::create_dir_all(&lib).unwrap();
+    cc(&[
+        "-shared",
+        "-fPIC",
+        "-O2",
+        "-o",
+        lib.join("liblowpass.so").to_str().unwrap(),
+        &format!("{FILTER_BANK}/lowpass.c"),
+    ]);
+    std::fs::write(
+        dir.path().join(taktwerk_raw::descriptor::DESCRIPTOR_FILE),
+        &text,
+    )
+    .unwrap();
+    let model = RawModel::load(dir.path()).unwrap();
+
+    let (n, dt) = (3_usize, 0.01);
+    let tau = [0.1, 0.5, 1.0];
+    let y0 = [0.5, 0.0, -1.0];
+    let spec = taktwerk_core::model::InstanceSpec {
+        id: "filt".to_owned(),
+        dims: std::collections::BTreeMap::from([("n".to_owned(), n)]),
+        params: std::collections::BTreeMap::from([
+            ("tau".to_owned(), f64s(&tau)),
+            ("y0".to_owned(), f64s(&y0)),
+            ("gain".to_owned(), f64s(&[2.0])),
+        ]),
+        step_size: dt,
+    };
+    let mut io = taktwerk_core::model::StepIo {
+        inputs: vec![f64s(&[0.0; 3])],
+        outputs: vec![f64s(&[0.0; 3])],
+        tunables: vec![f64s(&[2.0])],
+        tunables_changed: false,
+    };
+    let mut inst = model.instantiate(&spec).unwrap();
+    inst.init(0.0, &mut io).unwrap();
+    let alpha: Vec<f64> = tau.iter().map(|t| dt / (t + dt)).collect();
+    let mut x = y0.to_vec();
+    let mut gain = 2.0;
+    for k in 0..50 {
+        if k == 25 {
+            gain = -0.5;
+            io.tunables[0] = f64s(&[gain]);
+            io.tunables_changed = true;
+        }
+        let u = [1.0, (k as f64 * 0.2).sin(), -2.0];
+        io.inputs[0] = f64s(&u);
+        inst.step(k as f64 * dt, &mut io).unwrap();
+        io.tunables_changed = false;
+        for i in 0..n {
+            x[i] += alpha[i] * (u[i] - x[i]);
+        }
+        let want: Vec<f64> = x.iter().map(|x| gain * x).collect();
+        assert_close(&as_f64s(&io.outputs[0]), &want);
+    }
+    inst.terminate();
 }

@@ -1,0 +1,128 @@
+# Read by `taktwerk import-header` from the recommended shape of the header: every
+# role, shape and bound is stated there, so the descriptor is confirmed as read.
+
+name = "lowpass"
+instances = "multiple"
+
+[[dimensions]]
+name = "n"
+min = 1
+max = 64
+default = 3
+
+[[variables]]
+name = "tau"
+causality = "parameter"
+type = "f64"
+shape = ["n"]
+layout = "row-major"
+unit = "s"
+description = "time constant"
+
+[[variables]]
+name = "y0"
+causality = "parameter"
+type = "f64"
+shape = ["n"]
+layout = "row-major"
+description = "initial state"
+
+[[variables]]
+name = "u"
+causality = "input"
+type = "f64"
+shape = ["n"]
+layout = "row-major"
+description = "filter input"
+
+[[variables]]
+name = "gain"
+causality = "tunable"
+type = "f64"
+shape = []
+layout = "row-major"
+description = "output gain"
+
+[[variables]]
+name = "y"
+causality = "output"
+type = "f64"
+shape = ["n"]
+layout = "row-major"
+description = "gain times the filter state"
+
+[abi]
+confirmed = true
+ok_codes = [0]
+
+[abi.init]
+symbol = "lowpass_init"
+returns = "int"
+
+[[abi.init.args]]
+handle = "out"
+
+[[abi.init.args]]
+struct = "lowpass_dims"
+
+[[abi.init.args]]
+struct = "lowpass_params"
+
+[[abi.init.args]]
+builtin = "step_size"
+
+[abi.step]
+symbol = "lowpass_step"
+returns = "int"
+
+[[abi.step.args]]
+handle = "in"
+
+[[abi.step.args]]
+builtin = "time"
+
+[[abi.step.args]]
+struct = "lowpass_inputs"
+
+[[abi.step.args]]
+struct = "lowpass_tunables"
+
+[[abi.step.args]]
+struct = "lowpass_outputs"
+
+[abi.terminate]
+symbol = "lowpass_terminate"
+returns = "int"
+
+[[abi.terminate.args]]
+handle = "in"
+
+[[abi.structs.lowpass_dims.members]]
+name = "n"
+type = "int32_t"
+dim = "n"
+
+[[abi.structs.lowpass_inputs.members]]
+name = "u"
+type = "double *"
+variable = "u"
+
+[[abi.structs.lowpass_outputs.members]]
+name = "y"
+type = "double *"
+variable = "y"
+
+[[abi.structs.lowpass_params.members]]
+name = "tau"
+type = "double *"
+variable = "tau"
+
+[[abi.structs.lowpass_params.members]]
+name = "y0"
+type = "double *"
+variable = "y0"
+
+[[abi.structs.lowpass_tunables.members]]
+name = "gain"
+type = "double"
+variable = "gain"
