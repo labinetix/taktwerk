@@ -10,7 +10,8 @@ out around each step.
 1. `taktwerk import-header model.h -o taktwerk-model.toml` proposes a descriptor. The importer
    reads flat `typedef struct { … } Name;` blocks and function prototypes over the admitted
    types; it is not a C parser (no macro expansion) and skips, with a note, anything it does not
-   cover.
+   cover. A header in the recommended shape comes out confirmed; any other gets a proposal whose
+   notes start with what deviates from that shape.
 2. Read the notes at the top of the proposal. Function roles (init, step, terminate), dimension
    members and pointer→length relations are guessed by name; every guess is listed. Pointers are
    inputs when `const` and outputs otherwise; scalars by value are parameters unless the struct

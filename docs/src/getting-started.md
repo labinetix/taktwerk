@@ -71,6 +71,7 @@ from the repository root:
 |---------------------|----------------------------------------------------------------------|
 | `fmi-state-space`   | an FMI 3 FMU with structural parameters bound to one state           |
 | `raw-pi`            | a PI controller from a plain C library, multiple instances by handle |
+| `raw-filter-bank`   | a C library in the recommended shape, its descriptor read unreviewed |
 | `closed-loop`       | both in one engine, wired through the process image                  |
 | `taktwerk.service`  | a systemd unit (see [Running in production](production.md))          |
 
@@ -82,6 +83,10 @@ taktwerk run examples/fmi-state-space/project.toml
 # The PI controller is built from its C source.
 examples/raw-pi/build.sh
 taktwerk run examples/raw-pi/project.toml
+
+# The filter bank likewise; its descriptor is `taktwerk import-header lowpass.h --shape`.
+examples/raw-filter-bank/build.sh
+taktwerk run examples/raw-filter-bank/project.toml
 
 # Both: the controller closes the loop around the plant.
 taktwerk run examples/closed-loop/project.toml

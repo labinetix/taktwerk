@@ -55,9 +55,10 @@ signals over OPC UA.
   follows the recommended shape, which the importer reads without confirmation:
   `<m>_init(void **h, const <m>_dims *, const <m>_params *, double step_size)`,
   `<m>_step(void *h, double time, const <m>_inputs *, const <m>_tunables *, <m>_outputs *)`,
-  `<m>_terminate(void *h)`; `int` return, `0` is success; `<m>_dims` holds one `int` per
-  dimension; every array member carries its shape in a trailing comment (`/* [nx][nx] */`),
-  row-major. Other C interfaces are hosted through a hand-confirmed descriptor.
+  `<m>_terminate(void *h)`; `int` return, `0` is success; struct roles by type name suffix,
+  `_params` and `_tunables` optional; `<m>_dims` holds one `int` per dimension, bounds in its
+  comment (`/* 1..64 = 4 */`); every array member carries its shape in a trailing comment
+  (`/* [nx][nx] */`), row-major. Other C interfaces are hosted through a hand-confirmed descriptor.
 - **Tunables start at the model's value.** After init, a tunable no connector has written is
   seeded in the image from the model, so a write to one tunable never zeroes another.
 - **The engine knows no producer.** A toolchain that wants its models run (labinetix among them)

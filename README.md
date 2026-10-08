@@ -32,9 +32,10 @@ taktwerk tui opc.tcp://127.0.0.1:4840    # watch signals, edit inputs and tunabl
 ```
 
 A C library becomes a model package with `taktwerk import-header model.h -o
-taktwerk-model.toml`, confirmed by hand, and leaves as a standard FMI 3 FMU with
-`taktwerk fmu-wrap`. Runnable projects: [examples](examples/) (an FMU, a C
-controller, both in one loop, and a systemd unit).
+taktwerk-model.toml`: read as confirmed when the header follows the recommended shape, proposed
+for review otherwise. A package leaves as a standard FMI 3 FMU with `taktwerk fmu-wrap`.
+Runnable projects: [examples](examples/) (an FMU, a C controller, a C filter bank in the
+recommended shape, a closed loop, and a systemd unit).
 
 Not released yet. Design: [DESIGN.md](DESIGN.md).
 
