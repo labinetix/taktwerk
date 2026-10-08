@@ -1,4 +1,5 @@
-//! `taktwerk import-header`: propose a raw model descriptor from a C header.
+//! `taktwerk import-header`: read a raw model descriptor from a C header in the recommended
+//! shape (confirmed), or propose one (unconfirmed).
 
 use std::path::PathBuf;
 use std::process::ExitCode;
@@ -21,6 +22,10 @@ pub struct Args {
     /// `<param>=<struct>`; repeatable.
     #[arg(long = "arg-struct", value_name = "PARAM=STRUCT", value_parser = parse_arg_struct)]
     pub arg_structs: Vec<(String, String)>,
+    /// Require the recommended shape: fail with every deviation instead of proposing an
+    /// unconfirmed descriptor.
+    #[arg(long, conflicts_with_all = ["entry", "arg_structs"])]
+    pub shape: bool,
 }
 
 /// `<param>=<struct>`.
@@ -41,6 +46,7 @@ pub fn run(args: &Args) -> anyhow::Result<ExitCode> {
     let options = taktwerk_raw::ImportOptions {
         entry: args.entry.clone(),
         arg_structs: args.arg_structs.clone(),
+        require_shape: args.shape,
     };
     let proposal = taktwerk_raw::import_header_with(&args.header, &options)?;
     let text = proposal.to_toml()?;
@@ -52,10 +58,17 @@ pub fn run(args: &Args) -> anyhow::Result<ExitCode> {
             }
             std::fs::write(file, text)
                 .map_err(|e| anyhow::anyhow!("write {}: {e}", file.display()))?;
-            eprintln!(
-                "wrote {}: review its notes and set abi.confirmed = true",
-                file.display()
-            );
+            if proposal.from_shape {
+                eprintln!(
+                    "wrote {}: read from the recommended shape, confirmed",
+                    file.display()
+                );
+            } else {
+                eprintln!(
+                    "wrote {}: review its notes and set abi.confirmed = true",
+                    file.display()
+                );
+            }
         }
     }
     Ok(ExitCode::SUCCESS)

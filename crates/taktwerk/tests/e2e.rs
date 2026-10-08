@@ -64,18 +64,26 @@ fn scratch(name: &str) -> PathBuf {
 /// The raw PI package, copied out of `examples/raw-pi` and built with its `build.sh` (needs cc).
 fn raw_pi() -> &'static Path {
     static DIR: OnceLock<PathBuf> = OnceLock::new();
-    DIR.get_or_init(|| {
-        let dir = scratch("raw-pi-package");
-        for f in ["pi.c", "pi.h", "taktwerk-model.toml", "build.sh"] {
-            std::fs::copy(repo().join("examples/raw-pi").join(f), dir.join(f)).unwrap();
-        }
-        let status = Command::new("sh")
-            .arg(dir.join("build.sh"))
-            .status()
-            .unwrap();
-        assert!(status.success(), "building the PI library failed");
-        dir
-    })
+    DIR.get_or_init(|| raw_package("raw-pi", &["pi.c", "pi.h"]))
+}
+
+/// The filter bank package of `examples/raw-filter-bank`, built the same way.
+fn raw_filter_bank() -> &'static Path {
+    static DIR: OnceLock<PathBuf> = OnceLock::new();
+    DIR.get_or_init(|| raw_package("raw-filter-bank", &["lowpass.c", "lowpass.h"]))
+}
+
+fn raw_package(example: &str, sources: &[&str]) -> PathBuf {
+    let dir = scratch(&format!("{example}-package"));
+    for f in sources.iter().chain(&["taktwerk-model.toml", "build.sh"]) {
+        std::fs::copy(repo().join("examples").join(example).join(f), dir.join(f)).unwrap();
+    }
+    let status = Command::new("sh")
+        .arg(dir.join("build.sh"))
+        .status()
+        .unwrap();
+    assert!(status.success(), "building the {example} library failed");
+    dir
 }
 
 /// Example `name` with absolute model paths (FMI models: the Reference `StateSpace`) and its
@@ -88,6 +96,7 @@ fn example_project(name: &str, dir: &Path, port: u16) -> PathBuf {
         let model = model.as_table_mut().unwrap();
         let path = match model["kind"].as_str().unwrap() {
             "fmi" => fmus().join("fmi3/StateSpace"),
+            _ if name == "raw-filter-bank" => raw_filter_bank().to_path_buf(),
             _ => raw_pi().to_path_buf(),
         };
         model.insert("path".into(), path.display().to_string().into());
@@ -257,6 +266,45 @@ fn import_header_proposes_an_unconfirmed_descriptor() {
         &dir,
     );
     assert!(!out.status.success());
+}
+
+#[test]
+fn import_header_reads_the_recommended_shape_confirmed() {
+    let dir = scratch("import-shape");
+    let example = repo().join("examples/raw-filter-bank");
+    let header = example.join("lowpass.h");
+    let out = run(
+        &["import-header", header.to_str().unwrap(), "--shape"],
+        &dir,
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert_eq!(
+        stdout,
+        std::fs::read_to_string(example.join("taktwerk-model.toml")).unwrap()
+    );
+
+    // A header of another interface fails `--shape` with its deviations.
+    let pi = repo().join("examples/raw-pi/pi.h");
+    let out = run(&["import-header", pi.to_str().unwrap(), "--shape"], &dir);
+    assert!(!out.status.success());
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(stderr.contains("not the recommended shape"), "{stderr}");
+    assert!(stderr.contains("no struct named `pi_dims`"), "{stderr}");
+
+    // The example's project checks with the package built from it.
+    let file = example_project("raw-filter-bank", &dir, free_port());
+    let out = run(&["check", file.to_str().unwrap()], &dir);
+    assert!(
+        out.status.success(),
+        "{}\n{}",
+        String::from_utf8_lossy(&out.stdout),
+        String::from_utf8_lossy(&out.stderr)
+    );
 }
 
 #[test]

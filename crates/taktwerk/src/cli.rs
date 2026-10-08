@@ -62,7 +62,8 @@ pub enum Command {
         #[arg(long, default_value_t = 4840)]
         port: u16,
     },
-    /// Propose a raw model descriptor from a C header; prints it unless asked to write.
+    /// Read a raw model descriptor from a C header, or propose one; prints it unless asked to
+    /// write.
     ImportHeader(import::Args),
     /// Wrap a confirmed raw model package as an FMI 3 co-simulation FMU; a dry run unless
     /// asked to write.
