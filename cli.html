@@ -1,0 +1,574 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>CLI reference - taktwerk</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="User and developer guide of taktwerk, a fixed-step model execution engine for Linux">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-e96d0476.css">
+        <link rel="stylesheet" href="css/chrome-d279d366.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-4be38e6f.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-629b1601.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">taktwerk</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="cli-reference"><a class="header" href="#cli-reference">CLI reference</a></h1>
+<p><code>taktwerk</code> logs to stderr. <code>RUST_LOG</code> sets the filter; the default is <code>info</code> for <code>run</code> and
+<code>warn</code> otherwise. Exit status is non-zero when a command fails, when <code>check</code> finds a problem,
+and when <code>run</code> ends on a model or connector failure.</p>
+<p>On Windows taktwerk is a remote client: models are not loaded, so <code>inspect</code> and <code>new</code> refuse
+and <code>check</code> reports each model as a problem; <code>run</code>, <code>campaign --write</code> and <code>agent</code> refuse; <code>serve</code>
+offers files, records, campaign results and devices but starts no runs. <code>device</code>, <code>deploy</code>, <code>tui</code>,
+<code>record</code>, <code>import-header</code> and a campaign’s plan work as on Linux.</p>
+<p>The sections below are the program’s own <code>--help</code> output.</p>
+<h2 id="taktwerk"><a class="header" href="#taktwerk"><code>taktwerk</code></a></h2>
+<pre><code class="language-text">Fixed-step model execution engine for Linux with its own OPC UA server
+
+Usage: taktwerk &lt;COMMAND&gt;
+
+Commands:
+  check          Load a project, its models and connectors, resolve and bind it, print the plan
+  run            Run a project until SIGINT or SIGTERM
+  campaign       Plan a campaign of runs from one file and print the plan; with --write run it, resuming where it stopped
+  inspect        Print a model's interface: dimensions, variables, shapes
+  new            Scaffold a project file for one model; prints it unless asked to write
+  import-header  Read a raw model descriptor from a C header, or propose one; prints it unless asked to write
+  fmu-wrap       Wrap a confirmed raw model package as an FMI 3 co-simulation FMU; a dry run unless asked to write
+  tui            Monitor a running engine over OPC UA and edit its inputs and tunables
+  record         Pull a recorder's rows and events from a running engine and write them as run files, until SIGINT or SIGTERM
+  serve          Serve the workbench over a project folder: its files, plans, records and campaigns, runs started and watched, devices and deploys, and the web UI. Loopback only; needs a build with the `http` feature
+  agent          The device side of a deploy, run over SSH: install, activate, roll back and supervise bundles under an install root. Prints one JSON document
+  device         Devices reached over SSH: add, verify and scan them, and drive their bundles' units
+  deploy         Deploy a bundle to a device: print the plan; with --yes install the engine, send the changed files and activate the release
+  help           Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help     Print help
+  -V, --version  Print version
+</code></pre>
+<h2 id="taktwerk-check"><a class="header" href="#taktwerk-check"><code>taktwerk check</code></a></h2>
+<pre><code class="language-text">Load a project, its models and connectors, resolve and bind it, print the plan
+
+Usage: taktwerk check [OPTIONS] &lt;PROJECT&gt;
+
+Arguments:
+  &lt;PROJECT&gt;  Project file
+
+Options:
+      --json  Print the plan, or the problems, as one JSON object
+  -h, --help  Print help
+</code></pre>
+<p>In the signal table, <code>type</code> is the element type, or <code>text</code> for a text signal; its shape is then
+the capacity in bytes, NUL included (<code>text  [32]</code>). <code>inspect</code> prints variables the same way.</p>
+<p><code>--json</code> prints one object instead: <code>ok</code>, <code>tick_s</code>, <code>start_time</code>, <code>instances</code> (with each
+port’s signal and a composed input’s element sources), <code>signals</code> (id, name, direction, type,
+shape, unit, max age), <code>recorders</code> and <code>connectors</code>. A project that does not check prints
+<code>{"ok": false, "problems": [...]}</code> and exits non-zero.</p>
+<h2 id="taktwerk-run"><a class="header" href="#taktwerk-run"><code>taktwerk run</code></a></h2>
+<pre><code class="language-text">Run a project until SIGINT or SIGTERM
+
+Usage: taktwerk run [OPTIONS] &lt;PROJECT&gt;
+
+Arguments:
+  &lt;PROJECT&gt;  Project file
+
+Options:
+      --cycles &lt;CYCLES&gt;        Stop after this many ticks
+      --speed &lt;SPEED&gt;          How fast ticks follow the wall clock: `1` real time, `&lt;factor&gt;` that many times faster, `max` as fast as the models run. Off real time, ages count engine time [default: 1]
+      --no-connectors          Start no connector: the run serves nothing and needs no port
+      --until-time &lt;SECONDS&gt;   Stop before the first tick at or after this engine time, seconds
+      --stop-when &lt;CONDITION&gt;  Stop after the first tick at which this holds: `&lt;signal&gt; &lt;op&gt; &lt;number&gt;`, the op one of `&gt;`, `&gt;=`, `&lt;`, `&lt;=`, `==`, `!=`, or a bare signal for "not zero"; `name[i]` for an element. Repeatable; the first that holds ends the run
+      --set &lt;KEY=VALUE&gt;        Override before the run: `&lt;instance&gt;.&lt;parameter|tunable|input&gt;=&lt;value&gt;`, `&lt;instance&gt;.dims.&lt;dim&gt;=&lt;n&gt;`, `&lt;instance&gt;.every=&lt;n&gt;`, `engine.&lt;tick_ms|start_time| input_max_age_ms&gt;=&lt;value&gt;` or `&lt;signal&gt;=&lt;value&gt;` for a tunable's or external input's signal. The value is TOML (`0.5`, `true`, `[1, 2]`, `"text"`), else text. Repeatable, applied in order; each is recorded in run.json
+      --model &lt;ID=PATH&gt;        Use this package or FMU for model `ID`, of the same kind. Repeatable
+      --record-dir &lt;DIR&gt;       Write every file recorder under this directory instead of its `dir`
+      --seed &lt;SEED&gt;            Run seed: every instance whose model has a `seed` parameter or tunable (or the one its `seed_var` names) gets its own seed derived from it; `--set` still wins
+      --scenario &lt;FILE&gt;        A scenario file: timed events (set, add, ramp, fault, clear), overrides, stops and a seed. Options given here win over the file's
+      --http &lt;ADDR&gt;            Serve the HTTP API and web UI on this address (`127.0.0.1:8480`), as an `http` connector added to the project's; also with --no-connectors. Needs a build with the `http` feature
+      --http-writes            Let the --http connector accept writes and stop, with its token
+  -h, --help                   Print help
+</code></pre>
+<p><code>--cycles N</code> stops after <code>N</code> ticks and logs a <code>stop</code> event <code>cycle limit reached</code>; two runs of a
+deterministic project record the same parts (see
+<a href="recording.html#reproducible-runs">Recording</a>). <code>--speed</code> and <code>--no-connectors</code> run the project
+as a simulation, <code>--until-time</code> and <code>--stop-when</code> end it, <code>--set</code>, <code>--model</code> and
+<code>--record-dir</code> change it without editing the project, <code>--seed</code> seeds its models, <code>--scenario</code> scripts
+what happens while it runs; see <a href="simulation.html">Simulation runs</a>. <code>check</code> lists each recorder with its
+ring size.</p>
+<h2 id="taktwerk-campaign"><a class="header" href="#taktwerk-campaign"><code>taktwerk campaign</code></a></h2>
+<pre><code class="language-text">Plan a campaign of runs from one file and print the plan; with --write run it, resuming where it stopped
+
+Usage: taktwerk campaign [OPTIONS] &lt;FILE&gt;
+
+Arguments:
+  &lt;FILE&gt;  Campaign file
+
+Options:
+      --write        Run the campaign; without it, only the plan is printed
+      --force        When the output holds another plan, or to run every run again: start over
+      --jobs &lt;JOBS&gt;  Runs at a time, instead of the file's `jobs`
+  -h, --help         Print help
+</code></pre>
+<p>See <a href="campaigns.html">Campaigns</a>.</p>
+<h2 id="taktwerk-inspect"><a class="header" href="#taktwerk-inspect"><code>taktwerk inspect</code></a></h2>
+<pre><code class="language-text">Print a model's interface: dimensions, variables, shapes
+
+Usage: taktwerk inspect --kind &lt;KIND&gt; &lt;MODEL&gt;
+
+Arguments:
+  &lt;MODEL&gt;
+          Model path: an .fmu, an extracted FMU or a raw package directory
+
+Options:
+      --kind &lt;KIND&gt;
+          Model kind
+
+          Possible values:
+          - fmi: FMI 2 or FMI 3 co-simulation FMU (`.fmu` or an extracted directory)
+          - raw: Raw C library package (`taktwerk-model.toml` and libraries)
+
+  -h, --help
+          Print help (see a summary with '-h')
+</code></pre>
+<h2 id="taktwerk-new"><a class="header" href="#taktwerk-new"><code>taktwerk new</code></a></h2>
+<pre><code class="language-text">Scaffold a project file for one model; prints it unless asked to write
+
+Usage: taktwerk new [OPTIONS] --kind &lt;KIND&gt; &lt;MODEL&gt;
+
+Arguments:
+  &lt;MODEL&gt;
+          Model path
+
+Options:
+      --kind &lt;KIND&gt;
+          Model kind
+
+          Possible values:
+          - fmi: FMI 2 or FMI 3 co-simulation FMU (`.fmu` or an extracted directory)
+          - raw: Raw C library package (`taktwerk-model.toml` and libraries)
+
+  -o, --output &lt;OUTPUT&gt;
+          Write the project to this file instead of printing it
+
+      --write
+          Write the project to `taktwerk.toml` (or `--output`)
+
+      --force
+          Overwrite an existing file
+
+      --tick-ms &lt;TICK_MS&gt;
+          Base tick, milliseconds
+
+          [default: 10]
+
+      --port &lt;PORT&gt;
+          Port of the own OPC UA server
+
+          [default: 4840]
+
+  -h, --help
+          Print help (see a summary with '-h')
+</code></pre>
+<h2 id="taktwerk-import-header"><a class="header" href="#taktwerk-import-header"><code>taktwerk import-header</code></a></h2>
+<pre><code class="language-text">Read a raw model descriptor from a C header, or propose one; prints it unless asked to write
+
+Usage: taktwerk import-header [OPTIONS] &lt;HEADER&gt;
+
+Arguments:
+  &lt;HEADER&gt;  C header declaring the model's functions and structs
+
+Options:
+  -o, --output &lt;OUTPUT&gt;            Write the descriptor to this file instead of printing it
+      --force                      Overwrite an existing file
+      --entry &lt;ENTRY&gt;              The one function that serves as init and step (single entry point)
+      --arg-struct &lt;PARAM=STRUCT&gt;  Which struct an opaque `char *`/`void *` parameter of the entry carries, as `&lt;param&gt;=&lt;struct&gt;`; repeatable
+      --shape                      Require the recommended shape: fail with every deviation instead of proposing an unconfirmed descriptor
+  -h, --help                       Print help
+</code></pre>
+<h2 id="taktwerk-fmu-wrap"><a class="header" href="#taktwerk-fmu-wrap"><code>taktwerk fmu-wrap</code></a></h2>
+<pre><code class="language-text">Wrap a confirmed raw model package as an FMI 3 co-simulation FMU; a dry run unless asked to write
+
+Usage: taktwerk fmu-wrap [OPTIONS] &lt;PACKAGE&gt;
+
+Arguments:
+  &lt;PACKAGE&gt;
+          The raw model package (directory with `taktwerk-model.toml` and `lib/&lt;arch&gt;/`)
+
+Options:
+  -o, --output &lt;OUTPUT&gt;
+          The `.fmu` to write; default `&lt;modelIdentifier&gt;.fmu` in the working directory
+
+      --target &lt;ARCH&gt;
+          Target architecture (`aarch64`, `x86_64`), repeatable; default the host.
+
+          Another target needs `zig` on PATH (`zig cc -target &lt;arch&gt;-linux-gnu.2.25`) and the package's library for it.
+
+      --bundle &lt;LIB&gt;
+          A further library to ship beside the model's, repeatable.
+
+          A bare file name is taken from the package's `lib/&lt;arch&gt;/` per target, a path is copied as is; both land in `binaries/&lt;arch&gt;-linux/`.
+
+      --write
+          Build and write the FMU instead of printing what it would contain
+
+  -h, --help
+          Print help (see a summary with '-h')
+</code></pre>
+<h2 id="taktwerk-tui"><a class="header" href="#taktwerk-tui"><code>taktwerk tui</code></a></h2>
+<pre><code class="language-text">Monitor a running engine over OPC UA and edit its inputs and tunables
+
+Usage: taktwerk tui [OPTIONS] &lt;ENDPOINT&gt;
+
+Arguments:
+  &lt;ENDPOINT&gt;  The engine's server, e.g. `opc.tcp://127.0.0.1:4840`
+
+Options:
+      --namespace &lt;NAMESPACE&gt;  Namespace URI of the signal nodes [default: urn:taktwerk]
+      --prefix &lt;PREFIX&gt;        The engine's `system_prefix` [default: taktwerk]
+  -h, --help                   Print help
+</code></pre>
+<p>Text signals show quoted (<code>"tank 3"</code>) and are edited as strings: type the text, or quote it to
+keep leading or trailing spaces; inside quotes <code>\"</code>, <code>\\</code>, <code>\n</code> and <code>\t</code> are escapes. The
+server refuses text longer than the signal’s capacity − 1 bytes.</p>
+<h2 id="taktwerk-record"><a class="header" href="#taktwerk-record"><code>taktwerk record</code></a></h2>
+<pre><code class="language-text">Pull a recorder's rows and events from a running engine and write them as run files, until SIGINT or SIGTERM
+
+Usage: taktwerk record [OPTIONS] --dir &lt;DIR&gt; &lt;ENDPOINT&gt;
+
+Arguments:
+  &lt;ENDPOINT&gt;  The engine's server, e.g. `opc.tcp://192.168.0.10:4840`
+
+Options:
+      --dir &lt;DIR&gt;              Directory of the runs: `&lt;dir&gt;/&lt;project&gt;/&lt;recorder&gt;/&lt;run-id&gt;/`
+      --recorder &lt;RECORDER&gt;    Recorder id; may be left out when the engine has only one
+      --namespace &lt;NAMESPACE&gt;  Namespace URI of the signal nodes [default: urn:taktwerk]
+      --prefix &lt;PREFIX&gt;        The engine's `system_prefix` [default: taktwerk]
+  -h, --help                   Print help
+</code></pre>
+<p>It prints the rows, gaps, parts and runs it wrote when it stops. See
+<a href="recording.html#remote-recording">Recording</a>.</p>
+<h2 id="taktwerk-serve"><a class="header" href="#taktwerk-serve"><code>taktwerk serve</code></a></h2>
+<pre><code class="language-text">Serve the workbench over a project folder: its files, plans, records and campaigns, runs started and watched, devices and deploys, and the web UI. Loopback only; needs a build with the `http` feature
+
+Usage: taktwerk serve [OPTIONS] [DIR]
+
+Arguments:
+  [DIR]  The project folder [default: .]
+
+Options:
+      --listen &lt;LISTEN&gt;  Address and port to listen on [default: 127.0.0.1:8470]
+  -i, --identity &lt;FILE&gt;  A private key file to log in to devices with (repeatable); default: an SSH agent's identities, then `~/.ssh/id_ed25519`, `id_ecdsa`, `id_rsa`
+  -h, --help             Print help
+</code></pre>
+<p>Serves the workbench: the web UI and an API over the project folder (its project, scenario and
+campaign files, <code>check --json</code>, run records and campaign results) and runs started from it.
+Each run is a <code>taktwerk run --no-connectors</code> child (connectors only when asked) with an <code>http</code>
+connector on a free loopback port, proxied under <code>/api/runs/&lt;id&gt;/live/</code>. It prints the URL with
+a token; starting, stopping and writing need that token, <code>TAKTWERK_SERVE_TOKEN</code> when set.
+<code>POST /api/shutdown</code> with the token stops its runs and exits, as SIGTERM does. Under
+<code>/api/devices</code> it works on the device registry: verify, deploy, unit commands and each deployed
+bundle’s engine API through SSH (see <a href="workbench.html#devices">Workbench</a>). Needs a build with the
+<code>http</code> feature, and <code>ui</code> for the web UI; devices need the default feature <code>host</code>.</p>
+<h2 id="taktwerk-agent"><a class="header" href="#taktwerk-agent"><code>taktwerk agent</code></a></h2>
+<pre><code class="language-text">The device side of a deploy, run over SSH: install, activate, roll back and supervise bundles under an install root. Prints one JSON document
+
+Usage: taktwerk agent [OPTIONS] &lt;COMMAND&gt;
+
+Commands:
+  info          The system (architecture, glibc, os-release, systemd, free space) and installed bundles
+  status        Bundles' releases, selected project and unit state
+  manifest      A release's manifest: the active one, or the one named
+  activate      Verify the upload in `bundles/&lt;bundle&gt;/staging/&lt;hash&gt;`, make it a release and switch `current` to it. Refused while the bundle's unit runs
+  rollback      Switch back to the release activated before the active one. Refused while the unit runs
+  start         Start the bundle's engine unit (and its companions)
+  stop          Stop the bundle's engine unit (and its companions)
+  restart       Restart the bundle's engine unit (and its companions)
+  enable        Start the bundle at boot
+  disable       Do not start the bundle at boot
+  logs          The last journal lines of the bundle's units
+  gc            Remove releases but the active one and the most recent earlier ones, and staged uploads
+  install-unit  Write the template unit `taktwerk@.service` and the bundles' companion units; needs root
+  help          Print this message or the help of the given subcommand(s)
+
+Options:
+      --root &lt;DIR&gt;  The install root
+      --yes         Apply a mutating command; without it, print the plan
+  -h, --help        Print help
+</code></pre>
+<p>Run on a device by a host over SSH; each command prints one JSON document. Bundles, the
+manifest, the layout under <code>--root</code> and every command’s output are in
+<a href="deployment.html">Deploying to devices</a>.</p>
+<h2 id="taktwerk-device"><a class="header" href="#taktwerk-device"><code>taktwerk device</code></a></h2>
+<pre><code class="language-text">Devices reached over SSH: add, verify and scan them, and drive their bundles' units
+
+Usage: taktwerk device [OPTIONS] &lt;COMMAND&gt;
+
+Commands:
+  add           Add a device to the registry; `verify` pins its host key
+  list          List the registry's devices and what their last verify found
+  remove        Remove a device from the registry; nothing on the device changes
+  verify        Connect, pin the host key on first use, and probe: architecture, glibc against the engine's floor, systemd, free space under the root, installed engines and bundles
+  scan          List the hosts of an IPv4 subnet that answer on the SSH port, with their banner. Never logs in
+  status        Bundles' releases, selected project, http address and unit state
+  start         Start a bundle's engine unit (and its companions); through the device's privilege
+  stop          Stop a bundle's engine unit (and its companions); through the device's privilege
+  restart       Restart a bundle's engine unit; through the device's privilege
+  enable        Start a bundle at boot; through the device's privilege
+  disable       Do not start a bundle at boot; through the device's privilege
+  logs          The last journal lines of a bundle's units
+  rollback      Switch a bundle back to the release activated before the active one
+  gc            Remove a bundle's releases but the active one and the most recent earlier ones
+  install-unit  Write the template unit and the bundles' companion units; through the device's privilege. Needed once, and again when a release changes its companions
+  tunnel        Forward a local port to a bundle's engine http connector on the device and print the URL, until SIGINT
+  help          Print this message or the help of the given subcommand(s)
+
+Options:
+  -i, --identity &lt;FILE&gt;  A private key file to log in with (repeatable); default: an SSH agent's identities, then `~/.ssh/id_ed25519`, `id_ecdsa`, `id_rsa`. A password is asked for when none is accepted
+  -h, --help             Print help
+</code></pre>
+<p>Devices live in <code>devices.toml</code> in the config dir (<code>TAKTWERK_CONFIG_DIR</code> overrides). <code>add</code>,
+<code>remove</code> and <code>verify</code> change only that file. Every other command connects over SSH, refuses a
+host key other than the pinned one and calls the agent of the device’s engine (this version if
+installed, else the newest). Mutating commands (<code>start</code>, <code>stop</code>, <code>restart</code>, <code>enable</code>,
+<code>disable</code>, <code>rollback</code>, <code>gc</code>, <code>install-unit</code>) print the agent’s plan without <code>--yes</code>; <code>--yes</code> is
+refused when <code>CI</code> is set. <code>--json</code> prints the agent’s report, the device or the scan result.
+Login, host keys, privilege, verify, scan and the tunnel are in
+<a href="deployment.html#devices">Deploying to devices</a>.</p>
+<h2 id="taktwerk-deploy"><a class="header" href="#taktwerk-deploy"><code>taktwerk deploy</code></a></h2>
+<pre><code class="language-text">Deploy a bundle to a device: print the plan; with --yes install the engine, send the changed files and activate the release
+
+Usage: taktwerk deploy [OPTIONS] --device &lt;DEVICE&gt; &lt;BUNDLE&gt;
+
+Arguments:
+  &lt;BUNDLE&gt;  The bundle folder (with `taktwerk-bundle.toml`)
+
+Options:
+      --device &lt;DEVICE&gt;  The device, by its name in the registry
+      --engine &lt;FILE&gt;    The engine binary to install when the device lacks this version; default: the `TAKTWERK_ENGINES` directory, the desktop app's bundled engines, or this executable when it is a Linux build for the device's architecture
+      --yes              Apply; without it, print the plan
+      --json             Print the plan, or the report, as JSON
+  -i, --identity &lt;FILE&gt;  A private key file to log in with (repeatable); default: an SSH agent's identities, then `~/.ssh/id_ed25519`, `id_ecdsa`, `id_rsa`. A password is asked for when none is accepted
+  -h, --help             Print help
+</code></pre>
+<p>Prints the plan (engine, files to send against the active release, bytes against free space,
+problems) and exits non-zero when it has problems; <code>--yes</code> applies it. The steps are in
+<a href="deployment.html#deploying-a-release">Deploying to devices</a>.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="deployment.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="examples.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="deployment.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="examples.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-09f2665d.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-609e4cb8.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

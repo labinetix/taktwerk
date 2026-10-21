@@ -1,0 +1,512 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Connectors - taktwerk</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="User and developer guide of taktwerk, a fixed-step model execution engine for Linux">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-e96d0476.css">
+        <link rel="stylesheet" href="css/chrome-d279d366.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-4be38e6f.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-629b1601.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">taktwerk</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="connectors"><a class="header" href="#connectors">Connectors</a></h1>
+<p>A connector syncs part of the process image with the outside. At init the engine builds each
+connector from its <code>[[connector]]</code> table, asks it for <code>"from-server"</code> lengths, builds the image
+and lets each connector verify its mapping (fail-closed). While running, connectors work on
+their own I/O threads; the cycle thread never waits for them.</p>
+<p>Three kinds exist: the engine’s own OPC UA server, an OPC UA client and, in a build with the
+<code>http</code> feature, an HTTP API.</p>
+<h2 id="opc-ua-server"><a class="header" href="#opc-ua-server">OPC UA server</a></h2>
+<p><code>kind = "opcua-server"</code> exposes every signal of the image, the engine’s own signals included.</p>
+<pre><code class="language-toml">[[connector]]
+id = "ua"
+kind = "opcua-server"
+endpoint = "opc.tcp://0.0.0.0:4840"
+namespace = "urn:taktwerk"
+security = ["none"]
+anonymous = true
+users = [{ user = "op", password_env = "UA_PASSWORD" }]
+pki_dir = "./pki"
+trust_client_certs = false
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>key</th><th>default</th><th>meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>endpoint</code></td><td><code>"opc.tcp://0.0.0.0:4840"</code></td><td>listen URL, <code>opc.tcp://host:port</code></td></tr>
+<tr><td><code>namespace</code></td><td><code>"urn:taktwerk"</code></td><td>namespace URI of the signal nodes</td></tr>
+<tr><td><code>security</code></td><td><code>["none"]</code></td><td>offered message security, one endpoint each: <code>"none"</code>, <code>"sign"</code>, <code>"sign-encrypt"</code></td></tr>
+<tr><td><code>anonymous</code></td><td><code>true</code></td><td>accept anonymous sessions</td></tr>
+<tr><td><code>users</code></td><td><code>[]</code></td><td>accepted users: <code>{ user, password }</code> or <code>{ user, password_env }</code></td></tr>
+<tr><td><code>pki_dir</code></td><td><code>"./pki"</code></td><td>server certificate and key, trusted and rejected client certificates</td></tr>
+<tr><td><code>trust_client_certs</code></td><td><code>false</code></td><td>trust every client certificate, not only those in <code>&lt;pki_dir&gt;/trusted</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><code>"sign"</code> and <code>"sign-encrypt"</code> use the Basic256Sha256 policy. The server certificate is generated
+in <code>pki_dir</code> when a secure endpoint needs one. A user’s password comes from exactly one of
+<code>password</code> (inline) and <code>password_env</code> (the name of an environment variable); prefer
+<code>password_env</code> so no secret sits in the project file.</p>
+<p><strong>The server is open by default:</strong> anonymous, no encryption, all interfaces. On any network
+other than a closed machine network, bind it to one interface, turn off <code>anonymous</code>, add users
+and offer only secure endpoints.</p>
+<h3 id="nodes"><a class="header" href="#nodes">Nodes</a></h3>
+<ul>
+<li>Every signal is a variable node with NodeId <code>ns=&lt;index of namespace&gt;;s=&lt;signal name&gt;</code>, for
+example <code>ns=2;s=plant.y</code> (the index is assigned by the server; read it from the server’s
+namespace array, or address the node by URI as <code>nsu=urn:taktwerk;s=plant.y</code>).</li>
+<li>The browse path splits the name on <code>.</code> into folders under <code>Objects</code>: <code>plant.y</code> is
+<code>Objects/plant/y</code>, <code>taktwerk.heartbeat</code> is <code>Objects/taktwerk/heartbeat</code>.</li>
+<li>Data types: <code>f64</code> Double, <code>f32</code> Float, <code>i64</code> Int64, <code>i32</code> Int32, <code>i16</code> Int16, <code>i8</code> SByte,
+<code>u64</code> UInt64, <code>u32</code> UInt32, <code>u16</code> UInt16, <code>u8</code> Byte, <code>bool</code> Boolean.</li>
+<li>A scalar has ValueRank −1. An array has its rank and <code>ArrayDimensions</code>; matrix elements are
+sent in row-major order whatever the model’s storage layout.</li>
+<li>A text signal is a scalar <code>String</code> node. A read gives the bytes up to the first NUL, decoded
+as UTF-8 (invalid sequences are replaced, not refused). A write takes a <code>String</code> of at most
+capacity − 1 UTF-8 bytes, copies it and zero-fills the rest; a longer one is refused with
+<code>BadOutOfRange</code> and one containing NUL with <code>BadInvalidArgument</code>, never truncated.</li>
+<li>Outputs and system signals are read-only. Inputs and tunables are writable; a write goes to
+the image and is picked up at the next tick.</li>
+<li>Every node follows each published tick, with the time the value was written into the image as
+its source timestamp. A value never written has status <code>UncertainInitialValue</code>.</li>
+</ul>
+<h2 id="opc-ua-client"><a class="header" href="#opc-ua-client">OPC UA client</a></h2>
+<p><code>kind = "opcua-client"</code> syncs mapped signals with another OPC UA server, typically a PLC’s.</p>
+<pre><code class="language-toml">[[connector]]
+id = "plc"
+kind = "opcua-client"
+endpoint = "opc.tcp://192.168.0.10:4840"
+security = "none"
+credentials = { user = "op", password_env = "PLC_PASSWORD" }
+request_timeout_ms = 1000
+reconnect_backoff_ms = 1000
+sync_period_ms = 100
+stamp = "receive"
+
+max_nodes_per_request = 100
+
+[connector.map]
+"plant.u" = "ns=4;s=Plant.u"                       # input: read from the PLC
+"plant.y" = "nsu=urn:example:plc;s=Plant.y"        # output: written to the PLC
+"taktwerk.heartbeat" = "ns=4;s=Plant.heartbeat"    # the PLC watches it
+"taktwerk.status" = "ns=4;s=Plant.status"
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>key</th><th>default</th><th>meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>endpoint</code></td><td>required</td><td>server URL, <code>opc.tcp://host:port[/path]</code></td></tr>
+<tr><td><code>security</code></td><td><code>"none"</code></td><td><code>"none"</code>, <code>"sign"</code> or <code>"sign-encrypt"</code> (Basic256Sha256)</td></tr>
+<tr><td><code>credentials</code></td><td>anonymous</td><td><code>{ user, password }</code> or <code>{ user, password_env }</code></td></tr>
+<tr><td><code>request_timeout_ms</code></td><td><code>1000</code></td><td>bound on every request</td></tr>
+<tr><td><code>reconnect_backoff_ms</code></td><td><code>1000</code></td><td>first wait before a reconnect; doubles per failure up to 16 times this</td></tr>
+<tr><td><code>sync_period_ms</code></td><td><code>100</code></td><td>period of the input read</td></tr>
+<tr><td><code>stamp</code></td><td><code>"receive"</code></td><td>time an input read is stamped with: <code>"receive"</code> or <code>"source"</code></td></tr>
+<tr><td><code>pki_dir</code></td><td><code>"./pki-client"</code></td><td>client certificate and trusted server certificates (secure sessions only)</td></tr>
+<tr><td><code>trust_server_certs</code></td><td><code>false</code></td><td>trust every server certificate, not only those in <code>&lt;pki_dir&gt;/trusted</code></td></tr>
+<tr><td><code>max_nodes_per_request</code></td><td>the server’s limits</td><td>most nodes in one Read or Write</td></tr>
+<tr><td><code>gate</code></td><td>none</td><td>the <a href="#write-gate">write gate</a></td></tr>
+<tr><td><code>map</code></td><td><code>{}</code></td><td>signal name → NodeId, or a <a href="#conversion-and-checks">table</a></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="map"><a class="header" href="#map">Map</a></h3>
+<p>Each key is a signal of the image; each value a NodeId: <code>ns=&lt;index&gt;;s=&lt;id&gt;</code>, <code>nsu=&lt;uri&gt;;s=&lt;id&gt;</code>
+(the namespace is resolved by URI on every session), or the <code>i=</code>, <code>g=</code>, <code>b=</code> forms. Unmapped
+signals are not synced.</p>
+<ul>
+<li>Inputs and tunables are <strong>read</strong> from their nodes, one bulk Read every <code>sync_period_ms</code>.</li>
+<li>Outputs and system signals are <strong>written</strong> to theirs, one bulk Write per published tick.</li>
+</ul>
+<p>Every Read and Write, the verification reads included, is split into requests of at most
+<code>max_nodes_per_request</code> nodes and at most the server’s advertised <code>MaxNodesPerRead</code> and
+<code>MaxNodesPerWrite</code> (read at every session; <code>0</code> or unreadable means none). Set the key for a
+server that refuses large requests without advertising its limit.</p>
+<h3 id="conversion-and-checks"><a class="header" href="#conversion-and-checks">Conversion and checks</a></h3>
+<p>A map entry may be a table instead of a NodeId string:</p>
+<pre><code class="language-toml">[connector.map]
+"plant.y" = { node = "ns=4;s=Plant.y", scale = 0.01, offset = 0.0, min = 0.0, max = 1.0, max_unchanged_s = 60 }
+"mpc.u" = { node = "ns=4;s=Plant.u", min = 0.0, max = 100.0 }
+"mpc.cost" = { node = "ns=4;s=Plant.cost", gated = false }
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>key</th><th>default</th><th>meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>node</code></td><td>required</td><td>the NodeId</td></tr>
+<tr><td><code>scale</code>, <code>offset</code></td><td><code>1</code>, <code>0</code></td><td>signal value = node value · <code>scale</code> + <code>offset</code>; f64 and f32 signals only</td></tr>
+<tr><td><code>min</code>, <code>max</code></td><td>none</td><td>valid signal values; numeric signals, not bool or text</td></tr>
+<tr><td><code>max_unchanged_s</code></td><td>none</td><td>inputs and tunables: a node value unchanged for longer is invalid</td></tr>
+<tr><td><code>gated</code></td><td><code>true</code> with a gate</td><td>outputs: whether the <a href="#write-gate">write gate</a> holds it</td></tr>
+</tbody>
+</table>
+</div>
+<ul>
+<li>An input is converted after the read, element by element: <code>value = raw · scale + offset</code>.
+An output is converted back before the write: <code>raw = (value − offset) / scale</code>. <code>min</code> and
+<code>max</code> bound the signal value, in the engine’s units, on both sides.</li>
+<li>An array is converted and checked element by element; one invalid element makes the whole
+value invalid.</li>
+<li>With a range, NaN and infinities are invalid.</li>
+<li>An invalid input (out of range, or unchanged for longer than <code>max_unchanged_s</code>, compared bit
+for bit) is not written to the image: it ages and turns stale by its <code>max_age_ms</code>, as after
+a bad read. The problem is logged once until it clears.</li>
+<li>An invalid gated output closes the gate. An invalid output without a gate, or with
+<code>gated = false</code>, is not written: the node holds its last value, the problem is logged once.
+Nothing is clamped.</li>
+</ul>
+<h3 id="verification"><a class="header" href="#verification">Verification</a></h3>
+<p>Every session is verified before it syncs: the first at init, every reconnect again. For each
+mapped node the client reads DataType, ValueRank, ArrayDimensions, AccessLevel and the value,
+and refuses the session listing every mismatch:</p>
+<ul>
+<li>the node exists and its DataType is the signal’s type (<code>String</code> for a text signal);</li>
+<li>a scalar signal maps to a scalar node, an array signal to an array node with the same element
+count (from <code>ArrayDimensions</code>, or the current value when the server reports none);</li>
+<li>the node is readable, and writable when the engine writes it.</li>
+</ul>
+<p>A text signal maps to a scalar <code>String</code> node, typically a PLC <code>STRING(n)</code>, and follows the
+server’s rules: a remote string longer than capacity − 1 bytes is not read into the image (the
+input ages, the problem is logged), and the PLC refuses an output longer than its own <code>n</code>.
+Array elements travel in the signal’s storage order. At init a refusal, or an unreachable
+server, stops the engine before the first tick. After a reconnect a refusal is logged and
+retried with backoff.</p>
+<h3 id="write-gate"><a class="header" href="#write-gate">Write gate</a></h3>
+<p>A <code>gate</code> table holds the connector’s outputs while something is wrong, so the PLC keeps its
+last values instead of taking bad ones:</p>
+<pre><code class="language-toml">[connector.gate]
+open_after = 5                                  # good ticks in a row before writes resume
+conditions = [
+  { signal = "mpc.status", mask = 13 },         # closed while mpc.status &amp; 13 != 0
+  { signal = "plant.mode", min = 1, max = 1 },  # closed while not finite or outside [1, 1]
+]
+</code></pre>
+<p>The gate is evaluated once per published tick the connector writes. It is good when</p>
+<ul>
+<li>the engine status is running and the heartbeat advanced since the last tick (a skipped
+tick, a stopped engine or a repeated tick is bad);</li>
+<li>no condition holds: <code>mask</code> on an integer or bool scalar, <code>min</code>/<code>max</code> on a numeric scalar;</li>
+<li>every gated output is finite and within its mapping’s <code>min</code> and <code>max</code>.</li>
+</ul>
+<p>One bad tick closes it; it opens after <code>open_after</code> (default <code>1</code>) good ticks in a row. It starts
+closed and closes when the session is lost. While it is closed no gated output is written, so
+the PLC holds their last values; system signals (<code>taktwerk.heartbeat</code>, <code>taktwerk.status</code>) are
+always written, so the PLC sees the engine and owns the safe state.</p>
+<p>With a gate, every output is gated unless its map entry says <code>gated = false</code>: an output added
+to the map later is safe by default. Without a gate nothing is held.</p>
+<p>Each change is an event (<code>gate</code>: <code>open</code> or <code>closed: &lt;reason&gt;</code>), and the gate publishes system
+signals under <code>&lt;prefix&gt;.connector.&lt;id&gt;.</code>:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>signal</th><th>type</th><th>meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>gate_open</code></td><td><code>bool</code></td><td>whether gated outputs are written</td></tr>
+<tr><td><code>gate_opens</code></td><td><code>u64</code></td><td>times the gate opened</td></tr>
+<tr><td><code>gate_closes</code></td><td><code>u64</code></td><td>times the gate closed</td></tr>
+<tr><td><code>gate_held</code></td><td><code>u64</code></td><td>published ticks whose gated outputs were not written</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="reconnect-and-staleness"><a class="header" href="#reconnect-and-staleness">Reconnect and staleness</a></h3>
+<p>A lost session is closed and reconnected with exponential backoff. While disconnected, inputs
+are not written, so they age; with a <code>max_age_ms</code> the engine turns them stale and skips ticks
+until reads resume. An input read with a bad status, or a value that does not fit the signal,
+leaves that signal aging as well; the problem is logged once until it clears.</p>
+<h3 id="stamp"><a class="header" href="#stamp">Stamp</a></h3>
+<p><code>stamp = "receive"</code> stamps an input with the time the read response arrived: an input is as
+fresh as the last successful read. <code>stamp = "source"</code> uses the server’s source timestamp (or
+the receive time when it sends none). Servers that stamp a value only when it changes make a
+constant input look old under <code>"source"</code>.</p>
+<h3 id="from-server"><a class="header" href="#from-server"><code>from-server</code></a></h3>
+<p>For an instance dimension bound <code>"from-server"</code>, the client answers with the length of the node
+mapped to the dimension’s signal (its <code>ArrayDimensions</code>, else its current value’s length).</p>
+<h2 id="http-api"><a class="header" href="#http-api">HTTP API</a></h2>
+<p>A build with the <code>http</code> feature (<code>cargo install taktwerk --features ui</code> for the web UI too) adds
+the <code>http</code> connector: the engine’s signals, values and events as JSON and server-sent events,
+and the web UI. <code>taktwerk run --http 127.0.0.1:8480</code> adds one to any project, also with
+<code>--no-connectors</code>.</p>
+<pre><code class="language-toml">[[connector]]
+id = "web"
+kind = "http"
+listen = "127.0.0.1:8480"   # the default; loopback only
+rate_hz = 10.0              # samples per second at most, 0.1 to 50
+writes = false              # true accepts writes and stop, with the token
+# token_file = "/run/taktwerk/web.token"
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Endpoint</th><th></th></tr>
+</thead>
+<tbody>
+<tr><td><code>GET /api/info</code></td><td>connector id, version, rate, whether writes are on</td></tr>
+<tr><td><code>GET /api/signals</code></td><td>every signal: id, name, direction, type, shape, unit, max age</td></tr>
+<tr><td><code>GET /api/values?signals=a,b</code></td><td>the latest sample: cycle, wall time (<code>t_ms</code>), values, ages</td></tr>
+<tr><td><code>GET /api/stream?signals=a,b</code></td><td>the same as server-sent events <code>sample</code></td></tr>
+<tr><td><code>GET /api/events?after=N</code></td><td>the event log from sequence number <code>N</code> (with a recorder)</td></tr>
+<tr><td><code>POST /api/write</code></td><td><code>{"signal": "pi.kp", "value": 2.5}</code>: an input or tunable</td></tr>
+<tr><td><code>POST /api/stop</code></td><td>ends the run as SIGTERM does</td></tr>
+</tbody>
+</table>
+</div>
+<p>Values are JSON numbers (a bool as <code>true</code>/<code>false</code>), arrays flat in storage order, text as
+strings; <code>NaN</code> and infinities are <code>null</code>. Signals not named come in layout order. An age
+counts the engine’s clock, as an input’s <code>max_age_ms</code> does: wall time in real time, engine time
+under <code>--speed</code>.</p>
+<p>The connector never waits on the cycle: one task reads every signal at most <code>rate_hz</code> times a
+second, and only while a stream is open or a request came in the last two seconds; every
+request and stream is answered from that sample.</p>
+<p>Measured on a Raspberry Pi 5 shared with other jobs, <code>SCHED_OTHER</code> (no real-time priority),
+<code>raw-pi</code> at a 1 ms tick, 30 000 ticks twice per setup; wake-up lateness after the deadline:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>setup</th><th>load average about 12: mean, max</th><th>load average 3 to 7: mean, max</th></tr>
+</thead>
+<tbody>
+<tr><td>no <code>http</code> connector</td><td>0.18 to 0.26 ms, 14 to 16 ms</td><td>0.11 to 0.18 ms, 10 to 14 ms</td></tr>
+<tr><td>connector, no client</td><td>0.16 to 0.20 ms, 12 to 48 ms</td><td>0.14 to 0.17 ms, 11 to 16 ms</td></tr>
+<tr><td>client streaming every signal at 10 Hz</td><td>0.18 to 0.21 ms, 11 to 12 ms</td><td>0.17 to 0.19 ms, 16 to 19 ms</td></tr>
+<tr><td>client streaming every signal at 50 Hz</td><td>0.18 to 0.23 ms, 21 to 29 ms</td><td>0.18 to 0.19 ms, 14 to 29 ms</td></tr>
+</tbody>
+</table>
+</div>
+<p>The client also polled <code>/api/values</code> at 20 Hz. The mean does not move; the worst case on the
+quieter machine grew with a streaming client. A cycle that must not see it runs with
+<code>[engine.realtime]</code> and leaves the connector off or at a low <code>rate_hz</code>.</p>
+<p>Reading needs no credentials, like the OPC UA server’s anonymous default. Writes and stop need
+<code>writes = true</code> and <code>Authorization: Bearer &lt;token&gt;</code>. The token is <code>TAKTWERK_HTTP_TOKEN</code> when
+set, else a fresh one written to <code>token_file</code> (default
+<code>$XDG_RUNTIME_DIR/taktwerk/http-&lt;port&gt;.token</code>, mode 0600) and removed at shutdown. There is no
+TLS: keep <code>listen</code> on loopback, or on a network you trust.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="project-file.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="recording.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="project-file.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="recording.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-09f2665d.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-609e4cb8.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

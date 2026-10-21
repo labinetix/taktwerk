@@ -1,0 +1,611 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Other C interfaces: the descriptor - taktwerk</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="User and developer guide of taktwerk, a fixed-step model execution engine for Linux">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-e96d0476.css">
+        <link rel="stylesheet" href="../css/chrome-d279d366.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-4be38e6f.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-629b1601.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">taktwerk</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="other-c-interfaces-the-descriptor"><a class="header" href="#other-c-interfaces-the-descriptor">Other C interfaces: the descriptor</a></h1>
+<p>An existing C library that does not follow <a href="c.html">the recommended shape</a> is hosted as it is,
+through a descriptor that says how to call it. The engine owns every buffer, lays structs out by
+C’s rules for the running target, fills pointers once per call and copies inputs in and outputs
+out around each step.</p>
+<h2 id="workflow"><a class="header" href="#workflow">Workflow</a></h2>
+<ol>
+<li><code>taktwerk import-header model.h -o taktwerk-model.toml</code> proposes a descriptor. The importer
+reads flat <code>typedef struct { … } Name;</code> blocks and function prototypes over the admitted
+types; it is not a C parser (no macro expansion) and skips, with a note, anything it does not
+cover. A header in the recommended shape comes out confirmed; any other gets a proposal whose
+notes start with what deviates from that shape.</li>
+<li>Read the notes at the top of the proposal. Function roles (init, step, terminate), dimension
+members and pointer→length relations are guessed by name; every guess is listed. Pointers are
+inputs when <code>const</code> and outputs otherwise; scalars by value are parameters unless the struct
+name hints otherwise.</li>
+<li>Fix causalities (which values are parameters, which tunables), shapes, matrix layouts (the
+importer proposes one dimension per pointer), dimension bounds and defaults.</li>
+<li>Set <code>abi.confirmed = true</code>. An unconfirmed descriptor is refused at load.</li>
+<li>Put the library at <code>lib/&lt;arch&gt;/</code> next to the descriptor and run <code>taktwerk inspect &lt;dir&gt; --kind raw</code>.</li>
+</ol>
+<h2 id="package"><a class="header" href="#package">Package</a></h2>
+<pre><code class="language-text">&lt;package&gt;/
+  taktwerk-model.toml      the descriptor
+  lib/aarch64/&lt;name&gt;.so    one library per architecture; the running one is picked
+  lib/x86_64/&lt;name&gt;.so
+  lib/arm/&lt;name&gt;.so        32-bit hard-float ARM
+</code></pre>
+<h2 id="calls"><a class="header" href="#calls">Calls</a></h2>
+<p>A library is called through at most three functions, or one function serving as both init and
+step (see <a href="#single-entry-point">single entry point</a>):</p>
+<ul>
+<li><code>[abi.init]</code> once per instance, in declared order, after the engine has allocated and filled
+the buffers (dimension lengths, parameters, tunables, inputs as described under
+<a href="../concepts.html#init">Init</a>);</li>
+<li><code>[abi.step]</code> once per step, after inputs and changed tunables were copied in; outputs are
+copied out afterwards;</li>
+<li><code>[abi.terminate]</code> (optional) once when the instance is released, also after an error.</li>
+</ul>
+<p>Each function returns <code>int</code> (<code>returns = "int"</code>, the default), where any value in <code>ok_codes</code>
+(default <code>[0]</code>) is success and anything else fails the call, or <code>void</code> (<code>returns = "void"</code>).
+Arguments are listed in C order; each is exactly one of:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>argument</th><th>C parameter</th><th>filled with</th></tr>
+</thead>
+<tbody>
+<tr><td><code>{ struct = "s" }</code></td><td><code>s *</code></td><td>the address of the engine’s image of <code>s</code></td></tr>
+<tr><td><code>{ array = "v" }</code></td><td><code>T *</code></td><td>the address of variable <code>v</code>’s buffer</td></tr>
+<tr><td><code>{ value = "v" }</code></td><td><code>T</code></td><td>scalar variable <code>v</code> (input, parameter, tunable)</td></tr>
+<tr><td><code>{ dim = "n", type = "int" }</code></td><td>integer</td><td>the bound length of dimension <code>n</code></td></tr>
+<tr><td><code>{ builtin = "step_size" }</code></td><td><code>double</code></td><td>the instance’s step, seconds</td></tr>
+<tr><td><code>{ builtin = "time" }</code></td><td><code>double</code></td><td>the time the call advances from</td></tr>
+<tr><td><code>{ handle = "out" }</code></td><td><code>void **</code></td><td>init only: the library stores its handle</td></tr>
+<tr><td><code>{ handle = "in" }</code></td><td><code>void *</code></td><td>the stored handle</td></tr>
+<tr><td><code>{ const = 7, type = "int" }</code></td><td><code>T</code></td><td>the same number on every call</td></tr>
+<tr><td><code>{ phase = { init = 1, step = 0 }, type = "int" }</code></td><td><code>T</code></td><td>one number for init, another for step and terminate</td></tr>
+</tbody>
+</table>
+</div>
+<p><code>type</code> (default <code>int</code>) applies to <code>dim</code>, <code>const</code> and <code>phase</code>. Written as a pointer (<code>int *</code>),
+the argument is the address of engine-owned storage holding the value. A <code>const</code> or <code>phase</code>
+number is an integer literal (any type that holds it) or a float literal (<code>double</code>, <code>float</code>
+only). Handles need
+<code>instances = "multiple"</code>; init has at most one <code>handle = "out"</code>. A <code>value</code> argument cannot be an
+output or a shaped variable. Up to eight pointer/integer and eight floating-point arguments are
+passed per call; larger interfaces go through a struct.</p>
+<h2 id="structs"><a class="header" href="#structs">Structs</a></h2>
+<p>A struct in <code>[abi.structs.&lt;s&gt;]</code> lists its members with their C type in declaration order;
+each member maps to at most one of:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>member (<code>name</code>, <code>type</code> omitted)</th><th>C member</th><th>holds</th></tr>
+</thead>
+<tbody>
+<tr><td><code>{ variable = "v" }</code></td><td><code>T *</code></td><td>the address of <code>v</code>’s buffer</td></tr>
+<tr><td><code>{ variable = "v", owner = "library" }</code></td><td><code>T *</code></td><td>an address the library stores (see below)</td></tr>
+<tr><td><code>{ variable = "v" }</code></td><td><code>T</code></td><td>scalar <code>v</code> (see below)</td></tr>
+<tr><td><code>{ dim = "n" }</code></td><td><code>int</code>/<code>int *</code></td><td>the bound length of <code>n</code></td></tr>
+<tr><td><code>{ dim = "n", reported = true }</code></td><td><code>int</code>/<code>int *</code></td><td>a length the library writes (see below)</td></tr>
+<tr><td><code>{ builtin = "step_size" }</code></td><td><code>double</code></td><td>the step size or the time</td></tr>
+<tr><td><code>{ const = 9 }</code></td><td><code>T</code>/<code>T *</code></td><td>the same number on every call</td></tr>
+<tr><td><code>{ phase = { init = 1, step = 0 } }</code></td><td><code>T</code>/<code>T *</code></td><td>one number for init, another afterwards</td></tr>
+</tbody>
+</table>
+</div>
+<ul>
+<li>A scalar member mapped to a <code>variable</code> carries the value: inputs, parameters and tunables are
+written before each call, outputs read after it. A shaped variable needs a pointer member.</li>
+<li>A pointer member may point at a scalar variable of any causality. One the library writes back
+(a counter in an input struct) is mapped to an output variable, whose buffer the engine never
+overwrites.</li>
+<li>A pointer member carrying a <code>dim</code>, <code>const</code> or <code>phase</code> points at engine-owned storage.</li>
+<li>Unmapped pointer members are <code>NULL</code>, unmapped scalars zero.</li>
+</ul>
+<p>A variable member’s C type must match the variable’s type, with one exception: a <code>uint8_t</code> or
+<code>uint8_t *</code> member may carry a <code>bool</code> variable; the engine keeps the bytes and reads any non-zero
+byte as true.</p>
+<p><strong>Reported lengths.</strong> A <code>dim</code> member with <code>reported = true</code> is a length the library knows and
+writes itself. It is zeroed before init, then compared with the bound length after init and
+after every step; a difference fails the call with both values. The check runs after the call
+returned, so a library loaded with the wrong sizes may already have written at its own size:
+every reported dimension therefore needs a <code>max</code>, and the engine allocates each buffer shaped by
+it at that <code>max</code> while exchanging only the bound length (text and byte buffers keep their
+literal capacity). The project file stays the size authority.</p>
+<p><strong>Library-owned outputs.</strong> Some libraries allocate their output buffers themselves at init and
+store the addresses into the output struct’s pointer members (<code>out-&gt;y = y_buf;</code>), then write
+only their own buffers. Mark such a member <code>owner = "library"</code>:</p>
+<pre><code class="language-toml">{ name = "y", type = "double *", variable = "y", owner = "library" }
+</code></pre>
+<p>The engine writes <code>NULL</code> into the member before init and never writes it again. After init and
+after every step it reads the address from the struct and copies the variable’s bound length
+(text and byte buffers: their literal capacity) from there into its own buffer, byte-wise, so
+the address needs no alignment. A member still <code>NULL</code> after init, or set back to <code>NULL</code> by a
+step, fails that call with <code>the library left &lt;struct&gt;.&lt;member&gt; NULL</code>. Only a pointer member
+mapped to an <code>output</code> variable can be library-owned, and no other member or argument may carry
+that variable. The engine trusts the address: the library must keep at least the bound length
+readable there for the instance’s lifetime, the same contract as every pointer the engine hands
+it. The default, <code>owner = "engine"</code>, is the engine’s buffer as above.</p>
+<p><strong>Text</strong> is a <code>char *</code> member mapped to a <code>u8</code> variable with a literal shape, its capacity with
+the terminating NUL included (<code>shape = [32]</code>). Such a variable is marked text: the image and the
+library see its bytes, while connectors, <code>check</code>, <code>inspect</code> and the TUI present a string (the
+OPC UA server a <code>String</code> node, see <a href="../connectors.html">Connectors</a>). A <code>uint8_t *</code> or
+<code>unsigned char *</code> member stays a byte buffer. The caller supplies text through a parameter
+(a TOML string in the project file) or an input; the library writes it into an output.
+Each instance owns one image per struct, the same in every call, so a library may keep a struct pointer it got at init.</p>
+<h2 id="c-types"><a class="header" href="#c-types">C types</a></h2>
+<p>Admitted are <code>double</code>, <code>float</code>, <code>bool</code>, <code>char</code> and the fixed-width and plain integer types at
+their 64-bit Linux widths (<code>int</code> is <code>i32</code>, <code>long</code> and <code>size_t</code> are 64-bit, <code>char</code> is a byte
+that marks text),
+each optionally <code>const</code> and optionally followed by one <code>*</code>. Pointers to pointers are refused,
+except the <code>void **</code> of <code>handle = "out"</code>.</p>
+<h2 id="start-values"><a class="header" href="#start-values">Start values</a></h2>
+<p>An input, parameter or tunable may declare the value it starts at, as FMI’s <code>start</code> does:</p>
+<pre><code class="language-toml">[[variables]]
+name = "k"
+causality = "tunable"
+type = "f64"
+start = 2.0
+
+[[variables]]
+name = "b"
+causality = "parameter"
+type = "f64"
+shape = ["nx"]
+start = 1.0              # every element
+
+[[variables]]
+name = "c"
+causality = "parameter"
+type = "f64"
+shape = ["nx"]
+start = [0.1, 0.2, 0.3]  # one per element: nx must be bound to 3
+</code></pre>
+<ul>
+<li>A scalar takes one number, a <code>bool</code> variable <code>true</code> or <code>false</code>. Integers convert to floats,
+floats never to integers.</li>
+<li>An array takes one value for every element, or a flat list of the bound length, in the
+variable’s layout. A literal shape is checked at load, a symbolic one by <code>check</code> and at init.</li>
+<li>Outputs and text variables take no start.</li>
+<li>What sets a value wins over <code>start</code>: <code>--set</code>, then a scenario’s overrides, then the project’s
+<code>parameters</code>. Without any of them a value starts at <code>start</code>, without one at zero.</li>
+<li>A tunable shows its start in the image from the beginning and keeps it until written. An
+external input holds its start until a connector writes it; that is not a write, so an input
+with an age limit stays stale until then. A wired input takes its producer’s output.</li>
+<li><code>fmu-wrap</code> writes <code>start</code> as the FMI <code>start</code> (a list must fit the dimensions’ defaults) and
+fills the wrapper’s buffers with it, so an FMU importer starts where the raw adapter does.</li>
+<li><code>import-header</code> proposes none; a header carries no start values.</li>
+</ul>
+<h2 id="keys"><a class="header" href="#keys">Keys</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>key</th><th>meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>name</code></td><td>model name, informational</td></tr>
+<tr><td><code>instances</code></td><td><code>"single"</code> (default; state in globals) or <code>"multiple"</code></td></tr>
+<tr><td><code>[[dimensions]]</code></td><td><code>name</code>, optional <code>min</code>, <code>max</code>, <code>default</code></td></tr>
+<tr><td><code>[[variables]]</code></td><td><code>name</code>, <code>causality</code> (<code>input</code>, <code>output</code>, <code>parameter</code>, <code>tunable</code>), <code>type</code>, <code>shape</code> (dimension names or literal lengths; empty for a scalar), <code>layout</code> (<code>row-major</code> default, or <code>column-major</code>), optional <code>unit</code>, <code>description</code>, <code>text</code> (implied by a <code>char *</code> member), <code>start</code> (see <a href="#start-values">Start values</a>)</td></tr>
+<tr><td><code>abi.confirmed</code></td><td><code>true</code> once the developer checked every pointer→length relation</td></tr>
+<tr><td><code>abi.library</code></td><td>file name in <code>lib/&lt;arch&gt;/</code>; default: the only <code>.so</code> there</td></tr>
+<tr><td><code>abi.ok_codes</code></td><td>success return values of <code>int</code> calls; default <code>[0]</code></td></tr>
+<tr><td><code>abi.init</code>, <code>abi.step</code>, <code>abi.terminate</code></td><td><code>symbol</code>, <code>returns</code> (<code>int</code> or <code>void</code>), <code>args</code>; init and step may share a symbol</td></tr>
+<tr><td><code>abi.structs.&lt;s&gt;.members</code></td><td><code>name</code>, <code>type</code> (C spelling), at most one of <code>variable</code> (with optional <code>owner</code>: <code>engine</code> default, or <code>library</code>), <code>dim</code> (with optional <code>reported</code>), <code>builtin</code>, <code>const</code>, <code>phase</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>A <code>single</code> library keeps its state in globals, so each further instance loads a private copy of
+the file; a <code>multiple</code> library carries its state behind a handle or inside a struct the engine
+owns per instance.</p>
+<h2 id="example"><a class="header" href="#example">Example</a></h2>
+<p>A discrete state-space model <code>x' = A x + b u</code>, <code>y = k cᵀx</code>, size-generic in <code>nx</code>, with this C
+interface:</p>
+<pre><code class="language-c">typedef struct { int nx; const double *A; const double *b; const double *c; double k; } ss_params;
+typedef struct { double u; double *x; double y; } ss_io;
+int  ss_init(const ss_params *p, double dt);
+int  ss_step(const ss_params *p, ss_io *io, double t);
+void ss_terminate(void);
+</code></pre>
+<pre><code class="language-toml">name = "state-space"
+instances = "single"
+
+[[dimensions]]
+name = "nx"
+min = 1
+max = 64
+
+[[variables]]
+name = "A"
+causality = "parameter"
+type = "f64"
+shape = ["nx", "nx"]
+layout = "row-major"
+
+[[variables]]
+name = "b"
+causality = "parameter"
+type = "f64"
+shape = ["nx"]
+
+[[variables]]
+name = "c"
+causality = "parameter"
+type = "f64"
+shape = ["nx"]
+
+[[variables]]
+name = "k"
+causality = "tunable"
+type = "f64"
+
+[[variables]]
+name = "u"
+causality = "input"
+type = "f64"
+
+[[variables]]
+name = "x"
+causality = "output"
+type = "f64"
+shape = ["nx"]
+
+[[variables]]
+name = "y"
+causality = "output"
+type = "f64"
+
+[abi]
+confirmed = true
+ok_codes = [0]
+
+[abi.init]
+symbol = "ss_init"
+args = [{ struct = "ss_params" }, { builtin = "step_size" }]
+
+[abi.step]
+symbol = "ss_step"
+args = [{ struct = "ss_params" }, { struct = "ss_io" }, { builtin = "time" }]
+
+[abi.terminate]
+symbol = "ss_terminate"
+returns = "void"
+
+[abi.structs.ss_params]
+members = [
+  { name = "nx", type = "int", dim = "nx" },
+  { name = "A", type = "const double *", variable = "A" },
+  { name = "b", type = "const double *", variable = "b" },
+  { name = "c", type = "const double *", variable = "c" },
+  { name = "k", type = "double", variable = "k" },
+]
+
+[abi.structs.ss_io]
+members = [
+  { name = "u", type = "double", variable = "u" },
+  { name = "x", type = "double *", variable = "x" },
+  { name = "y", type = "double", variable = "y" },
+]
+</code></pre>
+<p>A library with a handle instead declares <code>instances = "multiple"</code> and, for example,
+<code>init.args = [{ handle = "out" }, { dim = "n" }, { builtin = "step_size" }]</code> with
+<code>step.args = [{ handle = "in" }, { array = "sp" }, { array = "pv" }, { array = "out" }]</code>. The
+repository’s
+<a href="../examples.html#raw-pi"><code>examples/raw-pi</code></a> is such a
+library, with its confirmed descriptor.</p>
+<h2 id="single-entry-point"><a class="header" href="#single-entry-point">Single entry point</a></h2>
+<p>A common legacy style exports one function for every call, taking an integer id and two opaque
+pointers the library casts to its input and output structs. Which call runs is a flag the caller
+sets, and the library reports its own sizes at init:</p>
+<pre><code class="language-c">typedef struct { int32_t *first; int32_t variant; double *k; double *u; int32_t *count; } io_in;
+typedef struct { double *y; char *label; int32_t *n_u; int32_t *n_y; } io_out;
+int model_call(int id, char *in, char *out);  /* 0 on success */
+</code></pre>
+<pre><code class="language-toml">name = "single-entry"
+
+[[dimensions]]
+name = "nu"
+
+[[dimensions]]
+name = "ny"
+
+[[variables]]
+name = "k"
+causality = "tunable"
+type = "f64"
+
+[[variables]]
+name = "u"
+causality = "input"
+type = "f64"
+shape = ["nu"]
+
+[[variables]]
+name = "count"
+causality = "output"
+type = "i32"
+
+[[variables]]
+name = "y"
+causality = "output"
+type = "f64"
+shape = ["ny"]
+
+[[variables]]
+name = "label"
+causality = "output"
+type = "u8"
+shape = [32]
+
+[abi]
+confirmed = true
+
+[abi.init]
+symbol = "model_call"
+args = [{ const = 7, type = "int" }, { struct = "io_in" }, { struct = "io_out" }]
+
+[abi.step]
+symbol = "model_call"
+args = [{ const = 7, type = "int" }, { struct = "io_in" }, { struct = "io_out" }]
+
+[abi.structs.io_in]
+members = [
+  { name = "first", type = "int32_t *", phase = { init = 1, step = 0 } },
+  { name = "variant", type = "int32_t", const = 1 },
+  { name = "k", type = "double *", variable = "k" },
+  { name = "u", type = "double *", variable = "u" },
+  { name = "count", type = "int32_t *", variable = "count" },
+]
+
+[abi.structs.io_out]
+members = [
+  { name = "y", type = "double *", variable = "y" },
+  { name = "label", type = "char *", variable = "label" },
+  { name = "n_u", type = "int32_t *", dim = "nu", reported = true },
+  { name = "n_y", type = "int32_t *", dim = "ny", reported = true },
+]
+</code></pre>
+<p><code>init</code> and <code>step</code> name the same symbol; the <code>phase</code> member <code>first</code> tells the two calls apart,
+<code>const</code> fills the id and a fixed <code>variant</code>, the library writes the step counter back through
+<code>count</code> (an output), and <code>n_u</code>, <code>n_y</code> are reported lengths checked against the instance’s bound
+<code>nu</code> and <code>ny</code>.</p>
+<p><code>taktwerk import-header model.h --entry model_call --arg-struct in=io_in --arg-struct out=io_out</code>
+imports such a header when told the entry point and the struct behind each opaque parameter; it
+then also guesses a flag-like integer as a <code>phase</code>, size-like integer pointers in an output
+struct as <code>reported</code> lengths, and a leading integer argument as a <code>const</code> whose value is left to
+the developer. Set each reported dimension’s <code>max</code> before confirming. A header does not say
+who sets an output pointer: if the library points them at its own buffers at init, add
+<code>owner = "library"</code> to those members.</p>
+<p>A runnable package in this style, with its header, source and confirmed descriptor:
+<a href="../examples.html#raw-single-entry"><code>examples/raw-single-entry</code></a>.</p>
+<h2 id="calling-convention"><a class="header" href="#calling-convention">Calling convention</a></h2>
+<p>Supported targets are aarch64, x86_64 and 32-bit hard-float ARM Linux, with the platform’s
+standard C calling convention. On 32-bit ARM a <code>float</code> or a 64-bit integer by value is refused
+(pass a <code>double</code>, or go through a pointer or struct), and <code>long</code> and <code>size_t</code> are 32 bits.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../models/c.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../tutorials/single-entry-controller.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../models/c.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../tutorials/single-entry-controller.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-609e4cb8.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>
