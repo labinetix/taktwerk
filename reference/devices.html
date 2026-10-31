@@ -1,0 +1,383 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Devices and bundles - taktwerk</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="User and developer guide of taktwerk, a fixed-step model execution engine for Linux">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-e96d0476.css">
+        <link rel="stylesheet" href="../css/chrome-d279d366.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-a1c78435.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-fdedd38f.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">taktwerk</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="devices-and-bundles"><a class="header" href="#devices-and-bundles">Devices and bundles</a></h1>
+<p>What a deploy puts on a device and how it runs there: the bundle file, the release manifest,
+the layout under the install root, the units, the supervisor where systemd does not run, and
+the agent’s commands. The workflow is in <a href="../deployment.html">Deploying to devices</a>.</p>
+<h2 id="bundle"><a class="header" href="#bundle">Bundle</a></h2>
+<p>A bundle is a folder with one or more project files, the model packages they use and optional
+companion processes, described by <code>taktwerk-bundle.toml</code> at its top:</p>
+<pre><code class="language-toml">name = "plant"                          # lowercase letters, digits, `_`, `-`; at most 64
+projects = ["sim.toml", "closed-loop.toml"]  # the first is selected on a device's first activation
+exclude = ["records", "campaigns"]      # left out, with everything below
+
+[[companion]]                           # a process of its own, started and stopped with the engine
+id = "bridge"
+command = "bin/bridge"                  # relative to the bundle
+args = ["--port", "9000"]
+env = { LOG = "info" }
+</code></pre>
+<p>Every regular file below the folder belongs to the bundle, except hidden entries (a name
+starting with <code>.</code>) and what <code>exclude</code> names. A link to a file inside the folder is carried as
+that file; a link out of the folder, or to a directory, is refused. Project and command paths
+use letters, digits and <code>._/+-</code> only.</p>
+<p>A bundle is checked per target architecture (<code>aarch64</code>, <code>x86_64</code>, <code>arm</code>): every project file
+parses, every model package it references lies inside the bundle (no path escapes it) and has a
+library for the architecture (<code>lib/&lt;arch&gt;/</code> of a raw package, <code>binaries/&lt;platform&gt;/</code> of an FMU,
+packed or extracted), and every companion’s command is in the bundle.</p>
+<h2 id="manifest"><a class="header" href="#manifest">Manifest</a></h2>
+<p>The manifest lists the bundle, the taktwerk version that runs it, the architecture and every
+file with its size and sha256. Its canonical form is one line of JSON, keys in this order, files
+sorted by path:</p>
+<pre><code class="language-json">{"format":1,"bundle":"plant","taktwerk":"0.8.1","arch":"aarch64","files":[{"path":"bin/bridge","size":1024,"sha256":"…","exec":true}]}
+</code></pre>
+<p><code>exec</code> marks a companion’s command, installed executable. The sha256 of these bytes, in
+lowercase hex, names the release. The agent refuses a manifest that is not canonical, whose
+hash is not the release’s name, or whose paths leave the bundle.</p>
+<h2 id="device-layout"><a class="header" href="#device-layout">Device layout</a></h2>
+<pre><code class="language-text">&lt;root&gt;/bin/taktwerk-&lt;version&gt;                    engine binaries
+&lt;root&gt;/bundles/&lt;name&gt;/staging/&lt;hash&gt;/            an upload: the files, and .taktwerk/manifest.json
+&lt;root&gt;/bundles/&lt;name&gt;/releases/&lt;hash&gt;/           activated releases
+&lt;root&gt;/bundles/&lt;name&gt;/releases/&lt;hash&gt;/.taktwerk/  manifest.json, engine -&gt; bin/taktwerk-&lt;version&gt;
+&lt;root&gt;/bundles/&lt;name&gt;/current -&gt; releases/&lt;hash&gt;
+&lt;root&gt;/bundles/&lt;name&gt;/history                    activated releases, oldest first
+&lt;root&gt;/bundles/&lt;name&gt;/records/                   the engine's file recorders
+&lt;root&gt;/bundles/&lt;name&gt;/env                        selected project, http address, secrets (0600)
+&lt;root&gt;/bundles/&lt;name&gt;/enabled                    without systemd: started at boot
+&lt;root&gt;/bundles/&lt;name&gt;/log, log.1 .. log.3        without systemd: the units' output
+&lt;root&gt;/bundles/&lt;name&gt;/supervise.lock, .json      without systemd: the supervisor's lock, state
+&lt;root&gt;/boot.sh                                   without systemd: starts the enabled bundles
+</code></pre>
+<p>The first activation creates <code>env</code>; later deploys leave it alone, and the device owner adds
+secrets (for <code>password_env</code>) and <code>RUST_LOG</code> there:</p>
+<pre><code class="language-text">TAKTWERK_PROJECT=sim.toml              relative to the release
+TAKTWERK_HTTP=127.0.0.1:8480           a loopback port per bundle, from 8480 up
+TAKTWERK_HTTP_TOKEN=&lt;64 hex digits&gt;    the http connector's write token
+</code></pre>
+<h2 id="units"><a class="header" href="#units">Units</a></h2>
+<p><code>agent install-unit</code> writes one template unit, <code>taktwerk@.service</code>; the instance is the bundle’s
+name. It runs as the owner of the install root (or <code>--user</code>), reads <code>env</code>, and starts in
+<code>current</code>:</p>
+<pre><code class="language-ini">ExecStart=&lt;root&gt;/bundles/%i/current/.taktwerk/engine run ${TAKTWERK_PROJECT} --http ${TAKTWERK_HTTP} --http-writes --record-dir &lt;root&gt;/bundles/%i/records
+Restart=on-failure
+RestartSec=2
+RestartSteps=5
+RestartMaxDelaySec=60
+LimitRTPRIO=90
+LimitMEMLOCK=infinity
+</code></pre>
+<p>A failed engine restarts after 2 s, the delay growing to 60 s (<code>RestartSteps</code> needs systemd
+254; an older one restarts every 2 s), and is never given up (<code>StartLimitIntervalSec=0</code>): an
+engine that fails at init because its PLC is not up yet comes back once it is.</p>
+<p>The release’s engine link picks the taktwerk version, so the binary switches with <code>current</code>.
+The engine serves its <code>http</code> connector on loopback only (the binary needs the <code>http</code> feature);
+a host reaches it through an SSH port forward. A companion is its own unit,
+<code>taktwerk-&lt;bundle&gt;.&lt;id&gt;.service</code>, with <code>PartOf=</code> and <code>After=</code> the engine’s; a drop-in
+<code>taktwerk@&lt;bundle&gt;.service.d/companions.conf</code> makes the engine’s unit want it. Rerun
+<code>install-unit</code> after a release changes its companions.</p>
+<h2 id="without-systemd"><a class="header" href="#without-systemd">Without systemd</a></h2>
+<p>On a device without systemd (a BusyBox userland with init scripts, perhaps a read-only root and
+a persistent data partition for the install root) the agent drives its built-in supervisor
+instead, through the same commands, JSON and unit names, so the host and the workbench work
+unchanged. It is picked when <code>/run/systemd/system</code> is missing; <code>--supervisor systemd|builtin</code>
+overrides. <code>agent info</code> reports <code>"supervisor": "builtin"</code>.</p>
+<ul>
+<li><code>start</code> runs <code>taktwerk agent supervise &lt;bundle&gt;</code> detached: one process per bundle, holding
+<code>supervise.lock</code> and writing its state to <code>supervise.json</code> in the bundle dir. It runs the
+engine with the same command line as the unit, in <code>current</code>, with <code>PATH</code>, <code>RUST_LOG=info</code>
+and the env file, then every companion.</li>
+<li>A unit that fails (non-zero exit, a signal other than SIGHUP, SIGINT, SIGTERM, SIGPIPE)
+restarts after 2 s, doubling to 60 s, back to 2 s after a run of 60 s, and is never given up.
+A cleanly ended engine stops the companions and the supervisor.</li>
+<li><code>stop</code> sends the supervisor SIGTERM; it stops the companions, then the engine, each with
+SIGTERM and SIGKILL after 30 s. A killed supervisor takes its units with it.</li>
+<li>Started as root (the boot script, or a <code>sudo</code> or <code>su</code> privilege), it raises <code>RLIMIT_RTPRIO</code>
+to 90 and <code>RLIMIT_MEMLOCK</code> to unlimited, then runs as the owner of the install root;
+<code>install-unit --user</code> is refused. Started as that owner, the real-time limits stay as they
+are.</li>
+<li>The units’ output goes to <code>bundles/&lt;bundle&gt;/log</code>, a line each with the time and the unit,
+rotated at 1 MiB to <code>log.1</code> .. <code>log.3</code>; <code>logs</code> reads it.</li>
+<li><code>enable</code> and <code>disable</code> create and remove <code>bundles/&lt;bundle&gt;/enabled</code>. <code>install-unit</code> writes
+<code>&lt;root&gt;/boot.sh</code>, which starts the enabled bundles in the order of their names (<code>stop</code> stops
+all), each through its release’s engine, and an init entry <code>S99taktwerk</code> that calls it in
+the first of <code>/etc/rc.d</code>, <code>/etc/init.d</code> that exists (<code>--unit-dir</code> picks another). On a
+read-only root the report’s <code>notes</code> say so: have the device’s own boot hook run
+<code>&lt;root&gt;/boot.sh start</code> as root.</li>
+<li><code>start-at</code> runs a supervisor that sleeps for the delay on the monotonic clock, then starts
+the units; <code>--cancel</code> stops it, <code>start</code> starts at once instead. Like the transient timer, it
+does not survive a reboot.</li>
+</ul>
+<h2 id="agent"><a class="header" href="#agent">Agent</a></h2>
+<pre><code class="language-sh">taktwerk agent &lt;command&gt; --root &lt;dir&gt; [--yes] [--supervisor systemd|builtin]
+</code></pre>
+<p>Every command but <code>connect</code> prints one JSON document on stdout:</p>
+<pre><code class="language-json">{"agent_api":1,"command":"activate","ok":true,"bundle":"plant","release":"…","applied":false,"plan":["…"]}
+{"agent_api":1,"command":"activate","ok":false,"error":{"code":"unit-running","message":"…"}}
+</code></pre>
+<p>A failure exits 1, a usage error 2. Error codes: <code>usage</code>, <code>invalid</code>, <code>not-found</code>,
+<code>unit-running</code>, <code>conflict</code>, <code>verify-failed</code>, <code>arch-mismatch</code>, <code>ci-refused</code>, <code>no-systemd</code>,
+<code>systemd</code>, <code>supervise</code>, <code>engine</code>, <code>io</code>.
+Mutating commands print their <code>plan</code> and change nothing without <code>--yes</code>; <code>--yes</code> is refused
+when <code>CI</code> is set.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>command</th><th>changes</th><th>what</th></tr>
+</thead>
+<tbody>
+<tr><td><code>info</code></td><td></td><td>architecture, glibc, os-release, systemd, supervisor, free bytes under the root, engines in <code>bin/</code>, bundles</td></tr>
+<tr><td><code>status [&lt;bundle&gt;]</code></td><td></td><td>releases, staged uploads, active release, selected and available projects, http address, unit states</td></tr>
+<tr><td><code>manifest &lt;bundle&gt; [&lt;hash&gt;]</code></td><td></td><td>the active (or named) release’s manifest</td></tr>
+<tr><td><code>activate &lt;bundle&gt; &lt;hash&gt;</code></td><td>yes</td><td>verify <code>staging/&lt;hash&gt;</code> against its manifest, move it to <code>releases/&lt;hash&gt;</code>, link its engine, create <code>env</code> if missing, switch <code>current</code> by one rename</td></tr>
+<tr><td><code>rollback &lt;bundle&gt;</code></td><td>yes</td><td>switch back to the release activated before the active one</td></tr>
+<tr><td><code>start &lt;bundle&gt; [--project &lt;file&gt;]</code></td><td>yes</td><td>select a project of the active release, then start the unit</td></tr>
+<tr><td><code>stop</code>, <code>restart</code>, <code>enable</code>, <code>disable &lt;bundle&gt;</code></td><td>yes</td><td>the engine unit; companions follow it</td></tr>
+<tr><td><code>logs &lt;bundle&gt; [--lines N]</code></td><td></td><td>journal lines of the engine and its companions (without systemd: the bundle’s <code>log</code>)</td></tr>
+<tr><td><code>records &lt;bundle&gt;</code></td><td></td><td>the files below <code>bundles/&lt;bundle&gt;/records/</code>: path, size, modification time and, for a closed file, the SHA-256 its run’s <code>SHA256SUMS</code> lists; temporary files left out</td></tr>
+<tr><td><code>gc &lt;bundle&gt; [--keep N]</code></td><td>yes</td><td>remove releases but the active one and the <code>N</code> (2) activated last before it, and staged uploads</td></tr>
+<tr><td><code>install-unit [--user U] [--unit-dir D]</code></td><td>yes</td><td>write the template, companion units and drop-ins, remove stale ones, reload systemd; needs root. Without systemd: <code>boot.sh</code> and its init entry</td></tr>
+<tr><td><code>start-at &lt;bundle&gt; --in D | --at T | --cancel [--project &lt;file&gt;]</code></td><td>yes</td><td>arm a transient timer <code>taktwerk-start@&lt;bundle&gt;.timer</code> (without systemd: a sleeping supervisor) that starts the unit once, or cancel it; needs root</td></tr>
+<tr><td><code>supervise &lt;bundle&gt; [--after-ms N]</code></td><td></td><td>the built-in supervisor, run by <code>start</code> and <code>start-at</code></td></tr>
+<tr><td><code>engine &lt;bundle&gt; status|read|watch|set …</code></td><td><code>set</code></td><td>operate the running engine through its http connector (<a href="../operations/engine.html">Operating a running engine</a>)</td></tr>
+<tr><td><code>connect &lt;address&gt;</code></td><td></td><td>copy stdin to a TCP connection to a loopback address and back to stdout; the host’s pipe to an engine’s http connector through <code>wsl.exe</code>; no <code>--root</code>, no JSON</td></tr>
+</tbody>
+</table>
+</div>
+<p><code>activate</code> and <code>rollback</code> refuse while the bundle’s unit runs. <code>activate</code> refuses a release for
+another architecture and reports, as <code>problems</code>, missing, changed or extra files, a missing
+<code>bin/taktwerk-&lt;version&gt;</code> and a running unit; a dry run says <code>ready</code> when there are none. Files
+an upload leaves out that the active release holds unchanged are taken from it, so a host sends
+only what changed.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../reference/run-record.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../models/index.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../reference/run-record.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../models/index.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-609e4cb8.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-init-b1bbe9bb.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

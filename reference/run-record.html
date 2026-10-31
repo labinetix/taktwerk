@@ -1,0 +1,436 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Run record format - taktwerk</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="User and developer guide of taktwerk, a fixed-step model execution engine for Linux">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-e96d0476.css">
+        <link rel="stylesheet" href="../css/chrome-d279d366.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-a1c78435.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-fdedd38f.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">taktwerk</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="run-record-format"><a class="header" href="#run-record-format">Run record format</a></h1>
+<p>A run record is what one recorder writes for one run of an engine: a directory of plain files
+that any tool can read with gzip, CSV and JSON. The engine’s own file sink and
+<code>taktwerk record</code> write the same files; <code>taktwerk serve</code>, the <a href="../python.html">Python package</a> and
+<code>taktwerk-record</code> read them. This page specifies format <code>1</code>, the <code>format</code> in <code>run.json</code>. How a
+recorder chooses what to record is in <a href="../recording.html">Recording</a>.</p>
+<h2 id="layout"><a class="header" href="#layout">Layout</a></h2>
+<pre><code class="language-text">&lt;dir&gt;/&lt;project&gt;/&lt;recorder&gt;/&lt;run-id&gt;/
+  run.json                   what was recorded and how the run was started
+  part-0001.csv.gz           closed parts: never change again
+  part-0002.csv.gz.open      the part being written; renamed without .open once closed
+  events.csv                 the run's events
+  SHA256SUMS                 one line per closed file
+  CLOSED                     empty; written last, once the run is closed
+</code></pre>
+<ul>
+<li><code>&lt;dir&gt;</code> is the recorder’s <code>dir</code> (or <code>--record-dir</code>), or <code>--dir</code> of <code>taktwerk record</code>.</li>
+<li><code>&lt;project&gt;</code> is the project file’s name without extension; <code>&lt;recorder&gt;</code> the recorder’s <code>id</code>
+(ASCII letters, digits, <code>_</code>, <code>-</code>).</li>
+<li><code>&lt;run-id&gt;</code> is <code>YYYYMMDDTHHMMSSZ-&lt;hash&gt;</code>: the recorder host’s UTC when the run opened and the
+first 8 hex digits of the project file’s SHA-256. A second run of the same second gets <code>-2</code>,
+then <code>-3</code>, and so on.</li>
+<li>Parts are numbered from <code>0001</code>, four digits at least; the order of the numbers is the order of
+the rows.</li>
+</ul>
+<h2 id="life-of-a-run"><a class="header" href="#life-of-a-run">Life of a run</a></h2>
+<ol>
+<li>The run opens: the directory, <code>run.json</code> (without <code>end</code>), <code>events.csv</code> with its header and
+<code>part-0001.csv.gz.open</code>.</li>
+<li>Rows go into the open part. When it closes (rotation or the end of the run) it is finished,
+synced to disk and renamed to <code>part-NNNN.csv.gz</code>, and <code>&lt;sha256&gt;  part-NNNN.csv.gz</code> is
+appended to <code>SHA256SUMS</code>; the next part opens.</li>
+<li>The run closes: the last part closes, <code>run.json</code> is replaced with <code>end</code>, the lines for
+<code>events.csv</code> and <code>run.json</code> are appended to <code>SHA256SUMS</code>, and <code>CLOSED</code> is created.</li>
+</ol>
+<ul>
+<li><code>run.json</code> is written as <code>run.json.tmp</code> and renamed, never rewritten in place.</li>
+<li><code>SHA256SUMS</code> lines are <code>&lt;64 lowercase hex&gt;  &lt;file name&gt;</code>, the format <code>sha256sum -c</code> checks.</li>
+<li>A run without <code>CLOSED</code> is still recording, or was cut off (SIGKILL, a crash, power). Its last
+part keeps the <code>.open</code> name and ends at its last flush.</li>
+<li>Retention deletes closed parts of a recorder’s runs, oldest first; their lines stay in
+<code>SHA256SUMS</code> (<code>sha256sum -c --ignore-missing</code>). <code>run.json</code>, <code>events.csv</code> and <code>SHA256SUMS</code>
+are never deleted.</li>
+<li>Files ending in <code>.tmp</code> are temporary: readers and sync tools ignore them.</li>
+</ul>
+<h2 id="runjson"><a class="header" href="#runjson"><code>run.json</code></a></h2>
+<p>One JSON object, pretty-printed.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>field</th><th>type</th><th>meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>run_id</code></td><td>string</td><td>the directory name</td></tr>
+<tr><td><code>host</code></td><td>string</td><td>the recorder host’s name</td></tr>
+<tr><td><code>source</code></td><td>string</td><td><code>local</code> for an engine’s own file sink, else the endpoint pulled</td></tr>
+<tr><td><code>start</code></td><td>object</td><td><code>cycle</code> (of the first row), <code>t_engine</code> (seconds), <code>utc</code> (RFC 3339, the recorder host’s clock)</td></tr>
+<tr><td><code>end</code></td><td>object</td><td>once closed: <code>cycle</code> (of the last row; <code>null</code> without rows), <code>rows</code>, <code>parts</code>, <code>utc</code>, and <code>truncated: true</code> when a puller lost the rows after <code>cycle</code></td></tr>
+<tr><td><code>format</code></td><td>integer</td><td><code>1</code></td></tr>
+<tr><td><code>project</code></td><td>string</td><td>the project name, as in the path</td></tr>
+<tr><td><code>project_hash</code></td><td>string</td><td><code>sha256:&lt;hex&gt;</code> of the project file</td></tr>
+<tr><td><code>taktwerk</code></td><td>string</td><td>the engine’s taktwerk version</td></tr>
+<tr><td><code>engine_run</code></td><td>string</td><td>random id of the engine process; another on every start</td></tr>
+<tr><td><code>recorder</code></td><td>string</td><td>the recorder id</td></tr>
+<tr><td><code>tick_s</code></td><td>number</td><td>the base tick, seconds</td></tr>
+<tr><td><code>start_time</code></td><td>number</td><td>engine time of cycle 0, seconds</td></tr>
+<tr><td><code>every</code></td><td>integer</td><td>ticks per row</td></tr>
+<tr><td><code>buffer_s</code></td><td>number</td><td>seconds of engine time the engine’s ring holds</td></tr>
+<tr><td><code>rotate</code></td><td>object</td><td><code>size_mb</code>, <code>hours</code></td></tr>
+<tr><td><code>retain</code></td><td>object</td><td><code>max_gb</code>, <code>days</code></td></tr>
+<tr><td><code>models</code></td><td>array</td><td>per model: <code>id</code>, <code>kind</code>, <code>path</code> (as the project gives it), <code>name</code> (the interface’s), <code>hash</code></td></tr>
+<tr><td><code>columns</code></td><td>array</td><td>per column, in row order: <code>name</code> (its header), <code>signal</code>, <code>type</code> (element type or <code>text</code>), <code>unit</code> (when declared), <code>words</code> (1, or a text column’s capacity in bytes)</td></tr>
+<tr><td><code>invocation</code></td><td>object</td><td>how the run was started, when not plainly from the project file; below</td></tr>
+</tbody>
+</table>
+</div>
+<p>A model’s <code>hash</code> is <code>sha256:&lt;hex&gt;</code> over the package: of the file for an <code>.fmu</code>; for a directory,
+over the files that make the package in path order, each as its relative path, a NUL byte and
+its bytes. A raw package’s files are <code>taktwerk-model.toml</code> and everything below <code>lib/</code>; an
+extracted FMU’s are <code>modelDescription.xml</code> and everything below <code>binaries/</code> and <code>resources/</code>.
+Other files in the directory are not part of the package.</p>
+<p><code>invocation</code>:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>field</th><th>meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>speed</code></td><td><code>1</code>, a factor, or <code>max</code></td></tr>
+<tr><td><code>connectors</code></td><td>whether the project’s connectors ran</td></tr>
+<tr><td><code>cycles</code>, <code>until_time</code>, <code>stop_when</code></td><td>the stop limits and conditions, as given</td></tr>
+<tr><td><code>overrides</code></td><td>every override in order: <code>key</code>, <code>value</code>, and <code>was</code>, the project’s value it replaced (absent when the project left it to the model); a <code>--model</code> is <code>models.&lt;id&gt;</code></td></tr>
+<tr><td><code>seed</code>, <code>seeds</code></td><td>the run seed and the seed each instance got, by instance id</td></tr>
+<tr><td><code>scenario</code></td><td>the scenario file: <code>path</code>, <code>hash</code> (<code>sha256:&lt;hex&gt;</code>), <code>text</code></td></tr>
+<tr><td><code>write</code></td><td>connectors whose writes <code>--write</code> turned on</td></tr>
+<tr><td><code>resume</code></td><td><code>--resume</code>: <code>tick</code> and <code>time</code> the run started at, <code>max_age_s</code>, and per instance id what it restored or why it starts from init</td></tr>
+</tbody>
+</table>
+</div>
+<p>Absent fields were not used. Device clocks are not trusted: rows carry cycles and engine time,
+and every UTC timestamp comes from the host that wrote the record.</p>
+<h2 id="parts"><a class="header" href="#parts">Parts</a></h2>
+<p>A part is a gzip file of CSV text (RFC 4180 quoting, <code>\n</code> line ends): a header line, then one
+line per row. The gzip header carries no file name and modification time 0.</p>
+<pre><code class="language-text">cycle,t_engine,filt.y[0],filt.y[1],filt.y[2],filt.gain,taktwerk.status
+0,0.0,0.9090909090909091,1.9607843137254901,2.9702970297029703,1.0,1
+1,0.01,0.8264462809917356,1.9223375624759707,2.9408881482207625,1.0,1
+</code></pre>
+<ul>
+<li><strong>Header:</strong> <code>cycle</code>, <code>t_engine</code>, then each column’s <code>name</code> from <code>run.json</code>, in that order. Every
+part repeats it. A scalar’s name is its signal; an array element is <code>&lt;signal&gt;[i]</code>, a matrix
+element <code>&lt;signal&gt;[i,j]</code> with logical indices, quoted since it holds a comma; a text signal is
+one column named like its signal.</li>
+<li><strong><code>cycle</code>:</strong> the tick, an unsigned integer. Consecutive rows differ by <code>every</code>; a larger step
+is a loss (see <a href="../recording.html#gaps-and-drops">Gaps and drops</a>). Skipped ticks have rows.</li>
+<li><strong><code>t_engine</code>:</strong> <code>start_time + cycle · tick_s</code>, seconds.</li>
+<li><strong>Floats</strong> (<code>f64</code>, <code>f32</code>): the shortest text that reads back to the same value: <code>0.1</code>,
+<code>1e-7</code>, <code>1.0</code>, <code>NaN</code>, <code>inf</code>, <code>-inf</code>.</li>
+<li><strong>Integers:</strong> decimal. <strong>Booleans:</strong> <code>0</code> or <code>1</code>.</li>
+<li><strong>Text:</strong> the bytes up to the first NUL, as UTF-8 (invalid sequences replaced), quoted when
+they hold a comma, a quote, CR or LF.</li>
+<li>The stream is flushed every 10 s of engine time and at close, never on wall time, so the same
+rows give the same bytes.</li>
+<li>A part still being written, or cut off, ends at its last flush without the gzip trailer: a
+reader decodes until the stream ends and keeps the complete lines.</li>
+</ul>
+<h2 id="eventscsv"><a class="header" href="#eventscsv"><code>events.csv</code></a></h2>
+<p>CSV with the header <code>cycle,t_engine,kind,source,detail</code>; one line per event, in the order the
+engine logged them. A puller’s <code>gap</code> line is written when the gap is found, so it may follow
+an event of a later cycle. <code>source</code> and <code>detail</code> are quoted when they need it. Flushed about once a
+second on wall time, so a run still recording may end in half a line.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>kind</th><th>source</th><th>detail</th></tr>
+</thead>
+<tbody>
+<tr><td><code>start</code></td><td><code>engine</code></td><td>the instances: <code>2 instances: ctrl plant</code></td></tr>
+<tr><td><code>stop</code></td><td><code>engine</code></td><td><code>requested</code>, <code>failed</code>, <code>cycle limit reached</code>, <code>time limit reached</code> or <code>condition &lt;condition&gt;</code></td></tr>
+<tr><td><code>tunable</code></td><td>the signal</td><td><code>start &lt;value&gt;</code>, <code>&lt;old&gt; -&gt; &lt;new&gt; by &lt;writer&gt;</code> or <code>refused &lt;value&gt; by &lt;writer&gt;: &lt;reason&gt;</code></td></tr>
+<tr><td><code>fault</code></td><td>the instance</td><td><code>step failed: returned &lt;code&gt;</code>, <code>step failed: interface mismatch</code> or <code>step failed: load error</code>; <code>re-init failed: …</code> for a failed <a href="../concepts.html#faults">re-init</a>; <code>; outputs held</code> or <code>; safe outputs</code> when the run goes on, else the engine stopped</td></tr>
+<tr><td><code>reinit</code></td><td>the instance</td><td><code>re-initialised</code>: a faulted instance runs again</td></tr>
+<tr><td><code>resume</code></td><td>the instance</td><td><code>run --resume</code>: <code>restored from tick &lt;n&gt; (saved &lt;utc&gt;)</code>, <code>tunables and inputs restored …; the model keeps no state …</code>, or <code>starts from init: &lt;why&gt;</code></td></tr>
+<tr><td><code>stale</code></td><td>the signal</td><td><code>older than &lt;n&gt; ms</code> or <code>never written</code>; once when the fault starts</td></tr>
+<tr><td><code>recovered</code></td><td><code>engine</code></td><td><code>&lt;n&gt; ticks skipped</code></td></tr>
+<tr><td><code>gap</code></td><td>the recorder</td><td><code>cycles &lt;a&gt;..=&lt;b&gt; lost (&lt;n&gt; rows)</code>, <code>events &lt;a&gt;..=&lt;b&gt; lost</code>, or <code>cycles from &lt;n&gt; not pulled: …</code>; written by a puller</td></tr>
+<tr><td><code>dropped</code></td><td>the recorder</td><td><code>&lt;n&gt; rows lost: cycles &lt;a&gt; to &lt;b&gt;</code>; written by a file sink</td></tr>
+<tr><td><code>scenario</code></td><td>the signal</td><td>what the <a href="../simulation.html#scenario-events">scenario event</a> does; <code>end: …</code> when a fault or ramp ends</td></tr>
+<tr><td><code>gate</code></td><td>the connector</td><td><code>open</code>, or <code>closed: &lt;reason&gt;</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>A value in a <code>detail</code> is written as in the parts; an array is <code>[a, b, c]</code> in storage order,
+text is in double quotes. A reader should accept kinds it does not know.</p>
+<h3 id="tunables"><a class="header" href="#tunables">Tunables</a></h3>
+<p><code>events.csv</code> holds the value of every tunable at every cycle:</p>
+<ul>
+<li>At init, before the first tick, one <code>start &lt;value&gt;</code> per tunable, in signal order.</li>
+<li>Every change: <code>&lt;old&gt; -&gt; &lt;new&gt; by &lt;writer&gt;</code>, the writer the id of the connector that wrote
+it. A write of the value in force logs nothing.</li>
+<li>Every refused write: <code>refused &lt;value&gt; by &lt;writer&gt;: &lt;reason&gt;</code> (wrong type, length or text
+capacity, outside the tunable’s <a href="../project-file.html#ranges">range</a>, or rejected by a client’s
+<a href="../connectors.html#conversion-and-checks">mapping</a>). The value in force stays.</li>
+<li>A scenario’s <code>set</code>, <code>add</code> or <code>ramp</code> of a tunable is a <code>scenario</code> event; the scenario is in
+<code>run.json</code>.</li>
+</ul>
+<p>The cycle of a <code>start</code> or a change is the first tick that fetches the value: an instance
+stepping at that cycle or later steps with it. The value of a tunable at cycle <code>c</code> is that of
+its last <code>start</code> or change line with a cycle of at most <code>c</code>; the lines of one tunable are in
+the order of its values.</p>
+<h2 id="reading-a-record"><a class="header" href="#reading-a-record">Reading a record</a></h2>
+<ol>
+<li>Read <code>run.json</code>; check <code>format</code>.</li>
+<li>List <code>part-*.csv.gz</code> and <code>part-*.csv.gz.open</code>, sort by name, and decode each as far as its
+gzip stream goes, keeping complete lines. Check each header against <code>columns</code>.</li>
+<li>Read <code>events.csv</code> up to its last line break.</li>
+<li>A run is complete when <code>CLOSED</code> exists; its closed files check with
+<code>sha256sum -c --ignore-missing SHA256SUMS</code>.</li>
+</ol>
+<p><a href="../examples.html#recording"><code>examples/recording/read_run.py</code></a> does steps 1 and 2 with the
+Python standard library.</p>
+<h2 id="pull-interface"><a class="header" href="#pull-interface">Pull interface</a></h2>
+<p><code>taktwerk record</code> reads a running engine’s recorders through its OPC UA server; another puller
+can do the same. Per recorder, next to its counters, in the signal namespace (<code>s=</code> NodeIds):</p>
+<ul>
+<li><code>&lt;prefix&gt;.recorder.&lt;id&gt;.manifest</code>, a <code>String</code> variable: <code>run.json</code> without the run’s own
+fields (<code>run_id</code>, <code>host</code>, <code>source</code>, <code>start</code>, <code>end</code>), as JSON.</li>
+<li><code>&lt;prefix&gt;.recorder.&lt;id&gt;.read_rows(from_cycle: UInt64, max_rows: UInt32)</code> returns
+<code>engine_run</code> (<code>String</code>), <code>oldest_cycle</code>, <code>next_cycle</code> (<code>UInt64</code>) and <code>rows</code> (<code>ByteString</code>).
+Rows start at the first row at or after <code>from_cycle</code> still held, <code>0</code> meaning the oldest. Each
+row is its cycle and then one word per column word (<code>words</code> in the manifest), all
+little-endian <code>u64</code>: a float’s bits (<code>f32</code> in the low 32), an integer sign- or zero-extended,
+a bool <code>0</code> or <code>1</code>, a text byte per word. A reply holds at most 8 MiB. Ask again from
+<code>next_cycle</code>; a jump in the cycles is a gap.</li>
+<li><code>&lt;prefix&gt;.recorder.&lt;id&gt;.read_events(from_seq: UInt64, max: UInt32)</code> returns <code>engine_run</code>,
+<code>oldest_seq</code>, <code>next_seq</code>, then <code>cycles</code> (<code>UInt64[]</code>), <code>kinds</code>, <code>sources</code> and <code>details</code>
+(<code>String[]</code>), one entry per event, at most 4096 per call.</li>
+</ul>
+<p><code>&lt;prefix&gt;</code> is the engine’s <code>system_prefix</code>. The methods are called on the recorder’s folder
+object, NodeId <code>s=&lt;prefix&gt;.recorder.&lt;id&gt;/</code>. A changed <code>engine_run</code> means the engine restarted
+and its cycles count from 0 again.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../reference/model-package.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../reference/devices.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../reference/model-package.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../reference/devices.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-609e4cb8.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-init-b1bbe9bb.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

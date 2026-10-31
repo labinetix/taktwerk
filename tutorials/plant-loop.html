@@ -1,0 +1,798 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>From a package to a running device - taktwerk</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="User and developer guide of taktwerk, a fixed-step model execution engine for Linux">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-e96d0476.css">
+        <link rel="stylesheet" href="../css/chrome-d279d366.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-a1c78435.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-fdedd38f.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">taktwerk</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="tutorial-from-a-package-to-a-running-device"><a class="header" href="#tutorial-from-a-package-to-a-running-device">Tutorial: from a package to a running device</a></h1>
+<p>A model package arrives, from a modelling tool or as an FMU from any FMI tool. This tutorial
+takes one through its whole life: inspected and simulated on a workstation, tested with a fault
+and a small campaign, bundled, deployed to an edge device, connected to a PLC and a plant data
+system, and operated there. Every step ends in commands to run and a result to check.</p>
+<pre><code class="language-mermaid">flowchart LR
+  P[package] --&gt; S[project, check]
+  S --&gt; W[workbench: run, scenario, campaign]
+  W --&gt; B[bundle]
+  B --&gt; D[edge device]
+  D &lt;--&gt; PL[PLC, plant data system]
+</code></pre>
+<p>The example is <a href="../examples.html#plant-loop"><code>examples/plant-loop</code></a>, a level loop: a PI controller
+drives a tank’s pump through a plant data system’s JSON API, from the level that system
+measures; the set point and an interlock come from a PLC, which also mirrors the loop and lets
+an operator tune the gains. A supervisor model turns the interlock and an implausible level into
+status bits that hold the writes. For the steps before the plant, a tank model stands in for it;
+for the plant, the example carries stand-ins of the PLC and the plant data system.</p>
+<h2 id="what-you-need"><a class="header" href="#what-you-need">What you need</a></h2>
+<ul>
+<li>A Linux shell on the workstation (on Windows, WSL2) with a C compiler, <code>python3</code>, <code>curl</code> and
+<a href="https://docs.astral.sh/uv/">uv</a>, and a checkout of the taktwerk repository.</li>
+<li>taktwerk with the workbench: the desktop app’s own <code>taktwerk</code> on Linux
+(<a href="../install-workbench.html">Installing the workbench</a>), or a build from the checkout,
+<code>cargo install --locked --path crates/taktwerk --features ui</code>.</li>
+<li>For steps 5 and 7, a device: any Linux machine with SSH and glibc 2.25 or newer, such as a
+single-board computer, a VM or WSL2; a login user with sudo, and <code>python3</code> for the stand-in
+plant data system.</li>
+</ul>
+<p>Every command on this page runs in CI: <code>examples/plant-loop/tutorial.sh</code> runs them in order,
+headless, and checks each result; the device steps run against the CI machine itself over SSH.</p>
+<h2 id="1-the-package"><a class="header" href="#1-the-package">1. The package</a></h2>
+<p>A package is a C library with its descriptor (<code>taktwerk-model.toml</code> and <code>lib/&lt;arch&gt;/</code>), or an
+FMU. Here <code>build.sh</code> builds them from the repository’s C sources: the PI of <code>raw-pi</code> and a tank
+model into <code>packages/</code>, as a modelling tool releases a package, and in place the example’s
+supervisor and the stand-in PLC.</p>
+<pre><code class="language-sh">cd examples/plant-loop
+sh build.sh
+taktwerk inspect --kind raw packages/pi
+</code></pre>
+<pre><code class="language-text">model pi (raw)
+instances multiple per process
+
+  dimension  min  max  default
+  n          1    -    1
+
+  variable  causality  type  shape   unit  description
+  kp        tunable    f64   scalar  -     proportional gain
+  ki        tunable    f64   scalar  1/s   integral gain
+  sp        input      f64   [n]     -     setpoint
+  pv        input      f64   [n]     -     process value
+  u         output     f64   [n]     -     manipulated variable
+</code></pre>
+<p>That is what a project binds: the dimension <code>n</code>, the tunables, the inputs and the output. An
+FMU is inspected the same way with <code>--kind fmi</code>; what makes a package is in
+<a href="../models/index.html">Making a model taktwerk-compatible</a>. <code>new</code> prints a project for one
+package to start from, one instance with a signal per variable and an OPC UA server:</p>
+<pre><code class="language-sh">taktwerk new --kind raw packages/pi
+taktwerk inspect --kind raw packages/tank
+</code></pre>
+<p><code>sim.toml</code> is such a project grown to the loop, with no connector: the PI as <code>ctrl</code>, the
+supervisor as <code>sup</code> and the tank as <code>plant</code>, the PI reading the tank’s measured level and
+driving its pump. The PLC’s set point and interlock are external inputs, zero until something
+sets them.</p>
+<pre><code class="language-toml"># The level loop of `project.toml` on a simulated plant, with no connector: the tank of
+# `packages/tank` in place of the plant data system, so the PI reads the tank's measured level
+# and drives its pump. The PLC's set point and interlock stay external inputs, zero until
+# something sets them: an override, a scenario event, the workbench. Build first (`build.sh`),
+# then from this folder:
+#   taktwerk run sim.toml --speed max --until-time 600 --set plc.level_sp=1.0
+
+[engine]
+tick_ms = 100.0
+
+[models.pi]
+kind = "raw"
+path = "packages/pi"
+
+[models.supervisor]
+kind = "raw"
+path = "supervisor"
+
+[models.tank]
+kind = "raw"
+path = "packages/tank"
+
+# The tank runs first: the PI and the supervisor read the level it measured this tick, and it
+# takes the pump flow the PI asked for at the previous one.
+[[instance]]
+id = "plant"
+model = "tank"
+parameters = { area = 10.0, k_out = 0.5, q_max = 1.5, level0 = 0.5, noise_sd = 0.002, seed = 1 }
+inputs = { q_set = "ctrl.u[0]" }
+
+[[instance]]
+id = "ctrl"
+model = "pi"
+dims = { n = 1 }
+parameters = { kp = 1.0, ki = 0.1 }
+inputs = { sp = ["plc.level_sp"], pv = ["plant.level_m"] }
+
+[[instance]]
+id = "sup"
+model = "supervisor"
+parameters = { level_lo = 0.05, level_hi = 2.0 }
+inputs = { interlock = "plc.interlock", level = "plant.level_m" }
+
+[[recorder]]
+id = "main"
+signals = ["@io"]
+</code></pre>
+<pre><code class="language-sh">taktwerk check sim.toml
+</code></pre>
+<p><code>check</code> loads every model, resolves the wiring and prints the plan: the instances, every signal
+with its direction and type, the composed inputs (<code>ctrl.pv</code> from <code>plant.level_m</code>,
+<code>plant.q_set</code> from <code>ctrl.u[0]</code>) and the recorder. It ends in
+<code>ok: 3 instance(s), 25 signal(s), 0 connector(s) checked</code>.</p>
+<h2 id="2-a-run-in-the-workbench"><a class="header" href="#2-a-run-in-the-workbench">2. A run in the workbench</a></h2>
+<pre><code class="language-sh">taktwerk serve .
+</code></pre>
+<p>Open the URL it prints. In <strong>Runs</strong>, pick <code>sim.toml</code>, add the override <code>plc.level_sp=1.0</code> and
+start it at speed 1. <strong>Live</strong> shows <code>plant.level_m</code> rising from 0.5 m to the set point; pick it
+and <code>ctrl.u</code> for the trend. Write <code>ctrl.kp</code> = 2 in its row: the pump answers harder. Stop the
+run. The recorder wrote it to <code>records/sim/main/&lt;run-id&gt;/</code>, which <strong>Records</strong> lists with its
+events and columns (<a href="../workbench.html">Workbench</a>, <a href="../recording.html">Recording</a>).</p>
+<p><code>report.py</code> reads the same record with the <a href="../python.html">Python package</a>: how the run ended,
+its events, the range of every column.</p>
+<pre><code class="language-sh">uv run --with ../../python python report.py records/sim/main
+</code></pre>
+<p>Check its events: <code>tunable  ctrl.kp  1.0 -&gt; 2.0 by http</code>, the write from the Live screen, and
+<code>stop: requested</code>.</p>
+<h2 id="3-a-fault-a-campaign-two-runs-compared"><a class="header" href="#3-a-fault-a-campaign-two-runs-compared">3. A fault, a campaign, two runs compared</a></h2>
+<p><code>fault.toml</code> is a <a href="../reference/scenario-file.html">scenario</a>: a set point, a time limit and
+timed events, among them a fault on the level sensor.</p>
+<pre><code class="language-toml"># Ten minutes of the simulated loop at a set point of 1 m: the set point steps to 1.5 m at 120 s,
+# the level sensor reads 2.5 m for 10 s from 300 s (outside the supervisor's plausible range),
+# and the PLC's interlock is set from 450 s to 480 s.
+
+[set]
+"plc.level_sp" = 1.0
+
+[stop]
+time_s = 600.0
+
+[[event]]
+at_s = 120.0
+set = "plc.level_sp"
+value = 1.5
+
+[[event]]
+at_s = 300.0
+fault = "plant.level_m"
+value = 2.5
+for_s = 10.0
+
+[[event]]
+at_s = 450.0
+set = "plc.interlock"
+value = 1
+
+[[event]]
+at_s = 480.0
+set = "plc.interlock"
+value = 0
+</code></pre>
+<pre><code class="language-sh">taktwerk run sim.toml --speed max --scenario fault.toml
+uv run --with ../../python python report.py records/sim/main
+</code></pre>
+<pre><code class="language-text">records/sim/main/20261030T014249Z-db921f1b: 6000 rows, 0.0 to 599.9 s, stop: time limit reached
+     120.0 s  scenario  plc.level_sp                 set plc.level_sp = 1.5
+     300.0 s  scenario  plant.level_m                fault plant.level_m value 2.5 for 10 s
+     310.0 s  scenario  plant.level_m                end: fault plant.level_m value 2.5 for 10 s
+     450.0 s  scenario  plc.interlock                set plc.interlock = 1
+     480.0 s  scenario  plc.interlock                set plc.interlock = 0
+  ...
+  plant.level                      0.4965 .. 1.593
+  ...
+  ctrl.u[0]                        -1.388 .. 1.008
+  sup.status                            0 .. 2
+  ...
+</code></pre>
+<p><code>--speed max</code> runs the ten minutes as fast as the models compute. The fault acts where the
+readers copy their inputs: the PI and the supervisor see 2.5 m, so <code>sup.status</code> is 2 for those
+10 s and the PI drives its output below zero; the recorded <code>plant.level_m</code> stays what the tank
+measured. The interlock sets bit 1. In the loop on the plant, either bit closes the write gates
+(step 6). The workbench starts the same run with the scenario picked in <strong>Runs</strong>.</p>
+<p><code>gains.toml</code> is a <a href="../campaigns.html">campaign</a> of three runs over the fault scenario, one per
+gain, all with one seed:</p>
+<pre><code class="language-toml"># The PI's gain over the fault scenario on the simulated plant: three runs, all with one seed.
+#   taktwerk campaign gains.toml            # the plan
+#   taktwerk campaign gains.toml --write    # run it
+
+project = "sim.toml"
+scenario = "fault.toml"
+out = "out/gains"
+jobs = 2
+seed = 1
+
+[grid]
+"ctrl.kp" = [0.5, 1.0, 2.0]
+</code></pre>
+<pre><code class="language-sh">taktwerk campaign gains.toml
+taktwerk campaign gains.toml --write
+</code></pre>
+<p>The first prints the plan, <code>runs 3 (0 done), 2 at a time, speed max</code> and a row per run (<code>g0</code>,
+<code>g1</code>, <code>g2</code>); the second runs it into <code>out/gains/</code>, and again skips what is done. In the
+workbench, <strong>Campaigns</strong> lists the runs; pick <code>g0</code> and <code>g2</code> to plot them together and compare
+them in the records view. In the shell:</p>
+<pre><code class="language-sh">uv run --with ../../python python report.py out/gains/runs/g0 out/gains/runs/g2
+</code></pre>
+<pre><code class="language-text">largest difference per column:
+  plant.q_dist                      equal
+  plc.level_sp                      equal
+  plc.interlock                     equal
+  plant.level                      0.3653 at 319.7 s
+  ...
+  ctrl.u[0]                         1.499 at 309.9 s
+  ...
+</code></pre>
+<p>The inputs are equal, so the gain makes the difference, largest around the end of the fault.
+Larger sweeps, analyses and a ranking are in <a href="../use-cases/campaigns.html">Campaign studies</a> and
+the <a href="campaign.html">gain sweep tutorial</a>.</p>
+<h2 id="4-the-bundle"><a class="header" href="#4-the-bundle">4. The bundle</a></h2>
+<p>A device runs a bundle: this folder, with its projects and the packages they use.</p>
+<pre><code class="language-toml"># The level loop as a bundle for a device, three projects: the simulated plant (selected on the
+# first activation), the loop on the plant as a dry run, and the closed loop.
+#   taktwerk deploy . --device edge
+name = "plant-loop"
+projects = ["sim.toml", "project.toml", "closed-loop.toml"]
+exclude = ["records", "out", "stand-in", "tutorial.sh"]
+</code></pre>
+<ul>
+<li><code>sim.toml</code>, the simulated plant, comes first: a device’s first activation selects it.</li>
+<li><code>project.toml</code> is the loop on the plant with both connectors in dry run: they read and log
+what they would write.</li>
+<li><code>closed-loop.toml</code> is <code>project.toml</code> with writes on. A device runs a project as it is, with no
+<code>--write</code>, so the closed loop is a project of its own.</li>
+</ul>
+<pre><code class="language-sh">grep -n '^writes' project.toml closed-loop.toml
+taktwerk check closed-loop.toml
+</code></pre>
+<pre><code class="language-text">project.toml:55:writes = "dry-run"
+project.toml:77:writes = "dry-run"
+closed-loop.toml:41:writes = "on"
+closed-loop.toml:63:writes = "on"
+</code></pre>
+<p>Every file below the folder belongs to the bundle except what <code>exclude</code> names; <code>stand-in/</code> is a
+bundle of its own (step 7). The rules are in <a href="../reference/devices.html">Devices and bundles</a>.</p>
+<h2 id="5-the-edge-device"><a class="header" href="#5-the-edge-device">5. The edge device</a></h2>
+<p>On the device, once: an install root owned by the login user, and the fingerprint of its host
+key, read on the device itself rather than over the network you are about to trust.</p>
+<pre><code class="language-sh">sudo install -d -o "$USER" /opt/taktwerk
+ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub
+</code></pre>
+<p>On the workstation, with the device’s address and login user:</p>
+<pre><code class="language-sh">DEVICE=192.168.1.20 DEVICE_USER=me
+taktwerk device add edge --host "$DEVICE" --user "$DEVICE_USER" --privilege sudo
+taktwerk device verify edge
+</code></pre>
+<pre><code class="language-text">edge: 127.0.0.1:22
+  host key   SHA256:…
+  arch       x86_64
+  glibc      2.39 (floor 2.25)
+  systemd    yes
+  root       /opt/taktwerk (exists, writable)
+  free       11570 MiB
+  engines    none
+</code></pre>
+<p>That is the CI machine as the device. <code>verify</code> shows the host key it was offered and pins it
+after a yes, when it matches the fingerprint read on the device (<code>--accept-host-key SHA256:…</code>
+pins it without asking). Then it probes: the architecture, glibc against the floor 2.25, whether systemd runs (without it the
+agent’s own <a href="../reference/devices.html#without-systemd">supervisor</a> runs the bundles, with the
+same commands), the install root and its free space. A problem stops a deploy, a note does not.</p>
+<pre><code class="language-sh">taktwerk deploy . --device edge
+taktwerk deploy . --device edge --yes
+taktwerk device install-unit edge --yes
+taktwerk device start edge plant-loop --yes
+taktwerk device engine edge plant-loop status
+taktwerk device engine edge plant-loop set plc.level_sp 1.0 --yes
+taktwerk device tunnel edge plant-loop
+</code></pre>
+<ul>
+<li>The plan names the engine to install, the files to send against the active release and the
+bytes against the free space. The libraries must be built for the device’s architecture: for
+another one, run <code>build.sh</code> with <code>CC</code> and <code>ARCH</code> first
+(<a href="../install.html#cross-building">Cross-building</a>), and the engine comes from the desktop app’s
+bundled engines or <code>--engine</code> (<a href="../deployment.html#deploying-a-release">Deploying a release</a>).</li>
+<li><code>install-unit</code> and <code>start</code> run through sudo; the engine starts with <code>sim.toml</code>.</li>
+<li><code>status</code> passes when the engine runs and its heartbeat advances; <code>set</code> writes the set point
+and reads it back.</li>
+<li><code>tunnel</code> prints <code>http://127.0.0.1:&lt;port&gt;/</code>, the engine’s live view and API on the device, until
+Ctrl-C.</li>
+</ul>
+<p>The workbench’s <strong>Devices</strong> page does all of this on the same registry: verify, the plan,
+deploy, start, <strong>Live</strong> through the same port forward (<a href="../workbench.html#devices">Workbench</a>).
+Stop the engine before the next step:</p>
+<pre><code class="language-sh">taktwerk device stop edge plant-loop --yes
+</code></pre>
+<h2 id="6-a-plc-and-a-plant-data-system"><a class="header" href="#6-a-plc-and-a-plant-data-system">6. A PLC and a plant data system</a></h2>
+<p><code>project.toml</code> replaces the tank with the plant: the <code>rest</code> connector <code>lab</code> reads the level from
+a plant data system and writes the pump set point and a watchdog; the <code>opcua-client</code> connector
+<code>plc</code> reads the set point and the interlock from a PLC and mirrors the loop into its program.</p>
+<pre><code class="language-toml"># A level loop on a plant, taktwerk alone: the PI of `packages/pi` drives the pump through a
+# plant data system's REST API, from the level that system measures, with the set point and an
+# interlock from a PLC, which also mirrors the loop and lets an operator tune it.
+#
+#   ctrl  PI: pump flow from the set point `plc.level_sp` and the measured level `lab.level`
+#   sup   status bits for the write gates: 1 the PLC's interlock is set, 2 the level is
+#         outside [level_lo, level_hi]
+#
+# `lab.level` goes stale 3 s after the last good read: the engine then skips its ticks and both
+# gates close, so the plant data system and the PLC keep their last set points. Both connectors
+# start as a dry run; `closed-loop.toml` is this file with writes on. Build the models first
+# (`build.sh`). Then, from this folder, with the addresses below set to the plant's, or the
+# stand-ins of `stand-in/` running:
+#   taktwerk check --live project.toml
+#   taktwerk run project.toml                         # reads, logs the writes
+#   taktwerk run project.toml --write plc --write lab # closes the loop
+
+[engine]
+tick_ms = 100.0
+
+[models.pi]
+kind = "raw"
+path = "packages/pi"
+
+[models.supervisor]
+kind = "raw"
+path = "supervisor"
+
+[[instance]]
+id = "ctrl"
+model = "pi"
+dims = { n = 1 }
+parameters = { kp = 1.0, ki = 0.1 }
+inputs = { sp = ["plc.level_sp"], pv = [{ signal = "lab.level", max_age_ms = 3000.0 }] }
+
+[[instance]]
+id = "sup"
+model = "supervisor"
+parameters = { level_lo = 0.05, level_hi = 2.0 }
+inputs = { interlock = "plc.interlock", level = "lab.level" }
+
+# Every external input as written and every output each tick; tunable changes, gate changes
+# and refused writes are events in events.csv.
+[[recorder]]
+id = "main"
+signals = ["@io"]
+
+# The plant data system: the measured level in, the pump set point and a watchdog out.
+[[connector]]
+id = "lab"
+kind = "rest"
+base_url = "http://127.0.0.1:8080/api/"
+period_ms = 500
+refresh_s = 10
+writes = "dry-run"
+
+[connector.gate]
+open_after = 3
+conditions = [{ signal = "sup.status", mask = 3 }]
+
+[connector.map]
+"lab.level" = { get = "values", pointer = "/level", min = 0, max = 5, max_unchanged_s = 60 }
+"ctrl.u[0]" = { put = "setpoints/pump", pointer = "/value", min = 0, max = 1.5, clamp = true }
+"taktwerk.heartbeat" = { put = "setpoints/watchdog", pointer = "/value" }
+
+# The PLC: set point and interlock in; the engine's signals, the loop and the gains mirrored
+# into its program, the gains synced both ways so an operator tunes them there. The map is what
+#   taktwerk plc-mirror project.toml --node-prefix 'nsu=urn:example:plc;s=' \
+#     --program mirror --from-plc 'plc.*' --all-tunables ctrl --sync-tunables
+# generates (with the program `mirror`), edited: the set point and interlock read from the
+# PLC's own `hmi` program, three engine signals left out, limits and an ungated status added.
+[[connector]]
+id = "plc"
+kind = "opcua-client"
+endpoint = "opc.tcp://127.0.0.1:4840"
+sync_period_ms = 200
+writes = "dry-run"
+sync_epoch = "nsu=urn:example:plc;s=mirror.taktwerk_sync_epoch"
+
+[connector.gate]
+open_after = 3
+conditions = [{ signal = "sup.status", mask = 3 }]
+
+[connector.map]
+"plc.level_sp" = { node = "nsu=urn:example:plc;s=hmi.level_sp", min = 0, max = 2 }
+"plc.interlock" = "nsu=urn:example:plc;s=hmi.interlock"
+"taktwerk.heartbeat" = "nsu=urn:example:plc;s=mirror.taktwerk_heartbeat"
+"taktwerk.status" = "nsu=urn:example:plc;s=mirror.taktwerk_status"
+"lab.level" = { node = "nsu=urn:example:plc;s=mirror.lab_level", mirror = true }
+"ctrl.u" = { node = "nsu=urn:example:plc;s=mirror.ctrl_u", min = 0, max = 1.5, clamp = true }
+"sup.status" = { node = "nsu=urn:example:plc;s=mirror.sup_status", gated = false }
+"ctrl.kp" = { node = "nsu=urn:example:plc;s=mirror.ctrl_kp", min = 0, max = 10, sync = true }
+"ctrl.ki" = { node = "nsu=urn:example:plc;s=mirror.ctrl_ki", min = 0, max = 1, sync = true }
+</code></pre>
+<p>The example carries stand-ins for both, on loopback:</p>
+<ul>
+<li><code>stand-in/lab.py</code>: the plant data system, a tank behind a JSON API, standard library only.</li>
+<li><code>stand-in/plc.toml</code>: the PLC, a taktwerk project whose OPC UA server offers the nodes
+<code>project.toml</code> maps; its model (<code>stand-in/plc/plc.h</code>) holds the operator’s set point and
+interlock as tunables, takes what the engine mirrors and watches the engine’s heartbeat.</li>
+</ul>
+<p>Start them in two more terminals, from this folder, then verify the map against them; <code>check --live</code> writes nothing:</p>
+<pre><code class="language-sh">python3 stand-in/lab.py
+taktwerk run stand-in/plc.toml --http 127.0.0.1:8490 --http-writes
+taktwerk check --live project.toml
+</code></pre>
+<p>It lists every node with its role and type, <code>ok</code> per row, and ends in <code>verified against the live endpoints, nothing written</code>. Now the dry run: it reads, evaluates the gates and logs what it
+would write.</p>
+<pre><code class="language-sh">taktwerk run project.toml --http 127.0.0.1:8480
+</code></pre>
+<p>Its log shows <code>dry run, not written: ctrl.u[0] (PUT setpoints/pump#/value) = …</code> once a second.
+In another terminal:</p>
+<pre><code class="language-sh">curl -s 127.0.0.1:8080/api/setpoints
+taktwerk engine read 'taktwerk.connector.*.gate_open' sup.status
+</code></pre>
+<p>The plant data system got nothing (<code>{"writes": 0}</code>), and both gates are open: a write would go
+out. Stop the run with Ctrl-C. Writes on, for one run: verify that every written node is
+writable, then run with <code>--write</code>:</p>
+<pre><code class="language-sh">taktwerk check --live --write plc --write lab project.toml
+taktwerk run project.toml --write plc --write lab --http 127.0.0.1:8480
+</code></pre>
+<p><code>curl -s 127.0.0.1:8080/api/setpoints</code> now shows the pump set point and the watchdog arriving;
+the stand-in’s tank follows the pump. Set the interlock on the PLC:</p>
+<pre><code class="language-sh">taktwerk engine --url 127.0.0.1:8490 set hmi.interlock 1 --yes
+</code></pre>
+<p><code>sup.status</code> is 1 and both gates close: the pump set point holds where it was, the watchdog
+keeps coming, so both sides see the engine alive. Clear the interlock and the gates open after
+three good ticks. An operator tunes the PI on the PLC; the synced gain reaches the engine:</p>
+<pre><code class="language-sh">taktwerk engine --url 127.0.0.1:8490 set hmi.interlock 0 --yes
+taktwerk engine --url 127.0.0.1:8490 set mirror.ctrl_kp 2 --yes
+taktwerk engine read ctrl.kp
+</code></pre>
+<p>Stop the run and both stand-ins with Ctrl-C. The record holds each gate change and the gain:</p>
+<pre><code class="language-sh">uv run --with ../../python python report.py records/project/main
+</code></pre>
+<p>Check for <code>gate  lab  closed: sup.status 1 has masked bits 1</code> and
+<code>tunable  ctrl.kp  1.0 -&gt; 2.0 by plc</code>. On a real plant the addresses and the map are the
+plant’s, generated with <a href="../cli.html#taktwerk-plc-mirror"><code>plc-mirror</code></a>, credentials come from the
+environment, and the same order applies: <a href="../operations/commissioning.html">Commissioning</a>. The
+connectors are in <a href="../connectors.html">Connectors</a> (dry run, write gate, tunable sync), the setups
+in <a href="../use-cases/beside-a-plc.html">A controller beside a PLC</a> and
+<a href="../use-cases/plant-data-system.html">A closed loop with a plant data system</a>.</p>
+<h2 id="7-operating-it-on-the-device"><a class="header" href="#7-operating-it-on-the-device">7. Operating it on the device</a></h2>
+<p>The stand-ins go to the device as a bundle of their own, the PLC’s project as its engine and
+<code>lab.py</code> as a companion process (<code>stand-in/taktwerk-bundle.toml</code>); then the closed loop, started
+at a set time:</p>
+<pre><code class="language-sh">taktwerk deploy stand-in --device edge --yes
+taktwerk device install-unit edge --yes
+taktwerk device start edge stand-in --yes
+taktwerk device start edge plant-loop --project closed-loop.toml --in 20s --yes
+taktwerk device status edge plant-loop
+</code></pre>
+<pre><code class="language-text">select project closed-loop.toml in /opt/taktwerk/bundles/plant-loop/env
+systemd-run --unit=taktwerk-start@plant-loop --on-active=20000ms: systemctl start taktwerk@plant-loop.service
+taktwerk@plant-loop.service starts at 2026-10-30 01:53:57 (this computer's clock)
+taktwerk-start@plant-loop.timer: active (waiting)
+</code></pre>
+<p><code>install-unit</code> runs again because the stand-in bundle brings a companion. <code>start --in</code> selects
+<code>closed-loop.toml</code> and arms a start once, 20 s later, on the device’s monotonic clock; <code>--at 06:00</code> names a time by the workstation’s clock, <code>--cancel</code> disarms it. Once it runs:</p>
+<pre><code class="language-sh">taktwerk device engine edge plant-loop status --expect 'taktwerk.connector.lab.gate_open'
+taktwerk device engine edge plant-loop read lab.level ctrl.u --for 10
+taktwerk device engine edge plant-loop set ctrl.kp 2 --yes
+taktwerk device engine edge stand-in read mirror.ctrl_kp mirror.engine_ok
+</code></pre>
+<p><code>status</code> passes while the engine runs, its heartbeat advances and the plant data system’s gate
+is open; <code>read --for</code> gives each signal’s count, mean, standard deviation, minimum and maximum
+over 10 s; <code>set</code> reads the gain back and reports its <code>events.csv</code> line. The PLC follows the new
+gain, and <code>mirror.engine_ok</code> is 1 while it sees the heartbeat. The commands and their reports
+are in <a href="../operations/engine.html">Operating a running engine</a>.</p>
+<p>Stop both, copy the records home and read them:</p>
+<pre><code class="language-sh">taktwerk device stop edge plant-loop --yes
+taktwerk device stop edge stand-in --yes
+taktwerk device records edge plant-loop
+uv run --with ../../python python report.py records/edge/plant-loop/closed-loop/main
+</code></pre>
+<p><code>records</code> copies what is new into <code>records/edge/plant-loop/</code>, where the workbench’s <strong>Records</strong>
+lists it too, and only reads on the device (<a href="../deployment.html#records">Records</a>). The report
+shows the gates opening and <code>tunable  ctrl.kp  1.0 -&gt; 2.0 by http</code>, the write of <code>set</code>.</p>
+<p>For a plant: set the addresses in <code>project.toml</code> and <code>closed-loop.toml</code> to the plant’s, put
+credentials into the bundle’s <code>env</code> file on the device, commission with the dry run first, and
+<code>device enable edge plant-loop --yes</code> to start it at boot. Running for weeks:
+<a href="../production.html">Production setup</a>.</p>
+<p><code>report.py</code>:</p>
+<pre><code class="language-python">"""A run of the level loop in a few lines, or two runs compared.
+
+    uv run --with ../../python python report.py &lt;run&gt; [&lt;other run&gt;]
+
+A run is a run directory (with `run.json`) or any directory above runs: then its newest run.
+Prints how the run ended, its events but the tunables' start values, and the range of every
+recorded number; given two runs, the largest difference per column instead.
+"""
+
+import math
+import sys
+from pathlib import Path
+
+import taktwerk
+
+
+def newest(path: str) -&gt; Path:
+    root = Path(path)
+    if (root / "run.json").is_file():
+        return root
+    runs = [p.parent for p in root.rglob("run.json")]
+    if not runs:
+        sys.exit(f"{path}: no run below it")
+    return max(runs, key=lambda p: (p / "run.json").stat().st_mtime)
+
+
+def numbers(run: taktwerk.Run, column: str) -&gt; list[float]:
+    return [float(v) for v in run[column] if isinstance(v, (int, float)) and math.isfinite(v)]
+
+
+def summary(path: Path, details: bool = True) -&gt; taktwerk.Run:
+    run = taktwerk.read_run(path)
+    t = run.t_engine
+    print(f"{path}: {len(t)} rows, {t[0]:.1f} to {t[-1]:.1f} s, stop: {run.stop}")
+    if not details:
+        return run
+    for e in run.events:
+        if e.kind not in ("start", "stop") and not e.detail.startswith("start "):
+            print(f"  {e.t_engine:8.1f} s  {e.kind:9} {e.source:28} {e.detail}")
+    for column in run.columns:
+        values = numbers(run, column)
+        if values:
+            print(f"  {column:28} {min(values):10.4g} .. {max(values):&lt;10.4g}")
+    return run
+
+
+def compare(a: taktwerk.Run, b: taktwerk.Run) -&gt; None:
+    print("largest difference per column:")
+    for column in a.columns:
+        if column not in b.columns:
+            continue
+        pairs = list(zip(a.t_engine, a[column], b[column]))
+        diffs = [
+            (abs(float(x) - float(y)), t)
+            for t, x, y in pairs
+            if isinstance(x, (int, float)) and isinstance(y, (int, float))
+        ]
+        diffs = [d for d in diffs if math.isfinite(d[0]) and d[0] &gt; 0]
+        if diffs:
+            d, t = max(diffs)
+            print(f"  {column:28} {d:10.4g} at {t:.1f} s")
+        else:
+            print(f"  {column:28} {'equal':&gt;10}")
+
+
+def main() -&gt; None:
+    if len(sys.argv) not in (2, 3):
+        sys.exit(__doc__)
+    if len(sys.argv) == 2:
+        summary(newest(sys.argv[1]))
+    else:
+        first = summary(newest(sys.argv[1]), details=False)
+        compare(first, summary(newest(sys.argv[2]), details=False))
+
+
+if __name__ == "__main__":
+    main()
+</code></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../getting-started.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../use-cases/simulation.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../getting-started.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../use-cases/simulation.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-609e4cb8.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-init-b1bbe9bb.js"></script>
+
+
+
+    </div>
+    </body>
+</html>
